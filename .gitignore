@@ -40,6 +40,9 @@ yarn-error.log*
 wallet.json
 secrets/
 
+# local JSON store (creator profiles, dev only)
+.data/
+
 # vercel
 .vercel
 
