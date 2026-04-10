@@ -1,10 +1,12 @@
 import {
   HTTPFacilitatorClient,
+  type HTTPRequestContext,
   type RoutesConfig,
   x402HTTPResourceServer,
   x402ResourceServer,
 } from "@x402/core/server";
 import { ExactStellarScheme } from "@x402/stellar/exact/server";
+import { getCreatorsStore } from "./creators";
 
 /**
  * Environment configuration for x402 server.
@@ -18,6 +20,11 @@ const STELLAR_NETWORK =
   "stellar:testnet";
 
 const TEST_RECIPIENT_ADDRESS = process.env.X402_TEST_RECIPIENT_ADDRESS ?? "";
+
+// Tip amount limits (USDC)
+const MIN_TIP_AMOUNT = 0.01;
+const MAX_TIP_AMOUNT = 1000;
+const DEFAULT_TIP_AMOUNT = "0.01";
 
 /**
  * Build the framework-agnostic x402 resource server.
@@ -35,18 +42,61 @@ function buildResourceServer(): x402ResourceServer {
 }
 
 /**
- * Route configuration for the Phase 2 test endpoint.
- * Uses a fixed recipient from env — Phase 3 will parameterize per creator.
+ * Extract the slug from a tip endpoint path like "/api/tip/alice".
  */
-function buildTestRoutes(): RoutesConfig {
-  if (!TEST_RECIPIENT_ADDRESS) {
-    throw new Error(
-      "X402_TEST_RECIPIENT_ADDRESS is required in .env.local for the x402 test route",
-    );
-  }
+function extractSlugFromPath(path: string): string | null {
+  const match = path.match(/^\/api\/tip\/([^/]+)$/);
+  return match ? match[1] : null;
+}
 
-  return {
-    "POST /api/tip/test": {
+/**
+ * Read and validate the tip amount from the query string.
+ * Defaults to MIN_TIP_AMOUNT when missing or invalid.
+ * Clamps to [MIN_TIP_AMOUNT, MAX_TIP_AMOUNT].
+ */
+function parseTipAmount(context: HTTPRequestContext): string {
+  const raw = context.adapter.getQueryParam?.("amount");
+  const value = typeof raw === "string" ? raw : undefined;
+  if (!value) return DEFAULT_TIP_AMOUNT;
+
+  const num = Number.parseFloat(value);
+  if (!Number.isFinite(num) || num <= 0) return DEFAULT_TIP_AMOUNT;
+
+  const clamped = Math.max(MIN_TIP_AMOUNT, Math.min(MAX_TIP_AMOUNT, num));
+  return clamped.toFixed(7);
+}
+
+/**
+ * Look up a creator's wallet address by slug for `DynamicPayTo`.
+ * Throws if the creator doesn't exist — the x402 framework will surface
+ * this as a payment error to the client.
+ */
+async function resolveCreatorPayTo(
+  context: HTTPRequestContext,
+): Promise<string> {
+  const slug = extractSlugFromPath(context.path);
+  if (!slug) {
+    throw new Error(`Could not extract slug from path: ${context.path}`);
+  }
+  const creator = await getCreatorsStore().get(slug);
+  if (!creator) {
+    throw new Error(`Creator not found: ${slug}`);
+  }
+  return creator.walletAddress;
+}
+
+/**
+ * Build the route configuration for the x402 HTTP resource server.
+ *
+ * Routes:
+ *   - POST /api/tip/test     → fixed recipient (Phase 2 debug)
+ *   - POST /api/tip/[slug]   → dynamic recipient + dynamic price (Phase 4)
+ */
+function buildRoutes(): RoutesConfig {
+  const routes: RoutesConfig = {};
+
+  if (TEST_RECIPIENT_ADDRESS) {
+    routes["POST /api/tip/test"] = {
       accepts: [
         {
           scheme: "exact",
@@ -57,8 +107,23 @@ function buildTestRoutes(): RoutesConfig {
       ],
       description: "Test tip (Phase 2 verification)",
       mimeType: "application/json",
-    },
+    };
+  }
+
+  routes["POST /api/tip/[slug]"] = {
+    accepts: [
+      {
+        scheme: "exact",
+        price: parseTipAmount,
+        network: STELLAR_NETWORK,
+        payTo: resolveCreatorPayTo,
+      },
+    ],
+    description: "Tip a creator on Glint",
+    mimeType: "application/json",
   };
+
+  return routes;
 }
 
 /**
@@ -73,7 +138,7 @@ export async function getX402HttpServer(): Promise<x402HTTPResourceServer> {
       const resourceServer = buildResourceServer();
       const httpServer = new x402HTTPResourceServer(
         resourceServer,
-        buildTestRoutes(),
+        buildRoutes(),
       );
       await httpServer.initialize();
       return httpServer;

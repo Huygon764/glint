@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TipForm } from "@/components/creator/TipForm";
+import { TipHistory } from "@/components/creator/TipHistory";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { getCreatorsStore, validateSlug } from "@/lib/creators";
 
@@ -10,7 +12,6 @@ export default async function CreatorPage({
 }) {
   const { slug } = await params;
 
-  // Validate slug format first (skip reserved words / malformed)
   const slugResult = validateSlug(slug);
   if (!slugResult.ok) {
     notFound();
@@ -32,7 +33,7 @@ export default async function CreatorPage({
         <ConnectButton />
       </header>
 
-      <section className="space-y-6">
+      <section className="space-y-8">
         <div>
           <h1 className="text-3xl font-bold">{creator.displayName}</h1>
           <p className="text-sm text-gray-500 font-mono">@{creator.slug}</p>
@@ -44,21 +45,18 @@ export default async function CreatorPage({
           </p>
         )}
 
-        <div className="border border-gray-300 dark:border-gray-700 rounded p-6 text-center space-y-3">
-          <p className="text-sm text-gray-500">Tipping coming in Phase 4</p>
-          <p className="text-xs text-gray-400">
-            Wallet:{" "}
-            <span className="font-mono">
-              {creator.walletAddress.slice(0, 6)}...
-              {creator.walletAddress.slice(-6)}
-            </span>
-          </p>
-        </div>
+        <TipForm slug={creator.slug} displayName={creator.displayName} />
+
+        <TipHistory walletAddress={creator.walletAddress} />
       </section>
 
       <footer className="mt-16 pt-6 border-t border-gray-200 dark:border-gray-800">
         <p className="text-xs text-gray-500">
-          Joined {new Date(creator.createdAt).toLocaleDateString()}
+          Joined {new Date(creator.createdAt).toLocaleDateString()} ·{" "}
+          <span className="font-mono">
+            {creator.walletAddress.slice(0, 6)}...
+            {creator.walletAddress.slice(-6)}
+          </span>
         </p>
       </footer>
     </main>
