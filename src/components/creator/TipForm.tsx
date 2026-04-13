@@ -28,6 +28,7 @@ export function TipForm({ slug, displayName }: Props) {
 
   const [selectedAmount, setSelectedAmount] = useState("0.50");
   const [customAmount, setCustomAmount] = useState("");
+  const [message, setMessage] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
   if (!address) {
@@ -88,7 +89,15 @@ export function TipForm({ slug, displayName }: Props) {
       setStatus({ kind: "submitting" });
 
       const url = `/api/tip/${encodeURIComponent(slug)}?amount=${encodeURIComponent(finalAmount)}`;
-      const response = await fetchWithPayment(url, { method: "POST" });
+      const body = JSON.stringify({
+        message: message.trim() || undefined,
+        from: address,
+      });
+      const response = await fetchWithPayment(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
       const text = await response.text();
 
       if (!response.ok) {
@@ -159,6 +168,26 @@ export function TipForm({ slug, displayName }: Props) {
           disabled={isBusy}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 font-mono text-sm disabled:opacity-50"
         />
+      </div>
+
+      <div>
+        <label
+          htmlFor="message"
+          className="block text-xs text-gray-600 dark:text-gray-400 mb-1"
+        >
+          Message <span className="text-gray-400">(optional, on-chain)</span>
+        </label>
+        <textarea
+          id="message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Leave a note on the tipping wall..."
+          maxLength={280}
+          rows={2}
+          disabled={isBusy}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-sm resize-none disabled:opacity-50"
+        />
+        <p className="text-xs text-gray-500 mt-1">{message.length}/280</p>
       </div>
 
       <button

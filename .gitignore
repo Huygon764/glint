@@ -43,6 +43,10 @@ secrets/
 # local JSON store (creator profiles, dev only)
 .data/
 
+# rust / soroban build artifacts
+contracts/**/target/
+contracts/**/Cargo.lock
+
 # vercel
 .vercel
 

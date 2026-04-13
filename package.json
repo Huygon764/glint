@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
-    "test:x402": "tsx scripts/test-x402.ts"
+    "test:x402": "tsx scripts/test-x402.ts",
+    "server:address": "tsx scripts/show-server-address.ts",
+    "deploy:tipjar": "tsx scripts/deploy-tipjar.ts",
+    "contract:build": "cd contracts/tipjar && stellar contract build",
+    "contract:test": "cd contracts/tipjar && cargo test"
   },
   "dependencies": {
     "@stellar/freighter-api": "^6.0.1",

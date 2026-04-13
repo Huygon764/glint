@@ -1,0 +1,50 @@
+import { NextResponse } from "next/server";
+import { getCreatorsStore, validateSlug } from "@/lib/creators";
+import { getTipMessages } from "@/lib/tipjar";
+
+/**
+ * GET /api/tip-messages/[slug]
+ *
+ * Read all tip messages for a creator from the TipJar Soroban contract.
+ *
+ * This is a public read endpoint — anyone can see the tipping wall.
+ * Serialized as JSON: { messages: [{ from, amount, note, timestamp }, ...] }
+ * (amount and timestamp are converted from BigInt to string for JSON safety)
+ */
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
+
+  const slugResult = validateSlug(slug);
+  if (!slugResult.ok) {
+    return NextResponse.json({ error: slugResult.error }, { status: 400 });
+  }
+
+  const creator = await getCreatorsStore().get(slugResult.slug);
+  if (!creator) {
+    return NextResponse.json({ error: "Creator not found" }, { status: 404 });
+  }
+
+  try {
+    const messages = await getTipMessages(creator.walletAddress);
+    // BigInt → string for JSON serialization
+    const serialized = messages.map((m) => ({
+      from: m.from,
+      amount: m.amount.toString(),
+      note: m.note,
+      timestamp: m.timestamp.toString(),
+    }));
+    return NextResponse.json({ messages: serialized });
+  } catch (err) {
+    console.error(
+      `[tip-messages/${creator.slug}] fetch failed:`,
+      (err as Error).message,
+    );
+    return NextResponse.json(
+      { error: "Failed to fetch tip messages" },
+      { status: 500 },
+    );
+  }
+}

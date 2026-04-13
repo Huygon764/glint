@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TipForm } from "@/components/creator/TipForm";
-import { TipHistory } from "@/components/creator/TipHistory";
+import { TipWall } from "@/components/creator/TipWall";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { getCreatorsStore, validateSlug } from "@/lib/creators";
 
@@ -47,7 +47,7 @@ export default async function CreatorPage({
 
         <TipForm slug={creator.slug} displayName={creator.displayName} />
 
-        <TipHistory walletAddress={creator.walletAddress} />
+        <TipWall slug={creator.slug} />
       </section>
 
       <footer className="mt-16 pt-6 border-t border-gray-200 dark:border-gray-800">
