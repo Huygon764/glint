@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { badRequest, notFound, serverError } from "@/lib/api-helpers";
 import { getCreatorsStore, validateSlug } from "@/lib/creators";
 import { getTipMessages } from "@/lib/tipjar";
 
@@ -18,14 +19,10 @@ export async function GET(
   const { slug } = await params;
 
   const slugResult = validateSlug(slug);
-  if (!slugResult.ok) {
-    return NextResponse.json({ error: slugResult.error }, { status: 400 });
-  }
+  if (!slugResult.ok) return badRequest(slugResult.error);
 
   const creator = await getCreatorsStore().get(slugResult.slug);
-  if (!creator) {
-    return NextResponse.json({ error: "Creator not found" }, { status: 404 });
-  }
+  if (!creator) return notFound("Creator not found");
 
   try {
     const messages = await getTipMessages(creator.walletAddress);
@@ -42,9 +39,6 @@ export async function GET(
       `[tip-messages/${creator.slug}] fetch failed:`,
       (err as Error).message,
     );
-    return NextResponse.json(
-      { error: "Failed to fetch tip messages" },
-      { status: 500 },
-    );
+    return serverError("Failed to fetch tip messages");
   }
 }

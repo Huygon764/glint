@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Dashboard } from "@/components/creator/Dashboard";
+import { Dashboard } from "@/components/creator/dashboard";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 
 export default function DashboardPage() {

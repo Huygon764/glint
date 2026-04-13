@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import {
+  badRequest,
+  forbidden,
+  notFound,
+  parseJsonBody,
+  serverError,
+} from "@/lib/api-helpers";
+import {
   getCreatorsStore,
   NotProfileOwnerError,
   validateSlug,
 } from "@/lib/creators";
+
+const DISPLAY_NAME_MAX = 50;
+const BIO_MAX = 280;
 
 type UpdateRequestBody = {
   walletAddress?: string;
@@ -22,16 +32,10 @@ export async function GET(
   const { slug } = await params;
 
   const slugResult = validateSlug(slug);
-  if (!slugResult.ok) {
-    return NextResponse.json({ error: slugResult.error }, { status: 400 });
-  }
+  if (!slugResult.ok) return badRequest(slugResult.error);
 
-  const store = getCreatorsStore();
-  const creator = await store.get(slugResult.slug);
-
-  if (!creator) {
-    return NextResponse.json({ error: "Creator not found" }, { status: 404 });
-  }
+  const creator = await getCreatorsStore().get(slugResult.slug);
+  if (!creator) return notFound("Creator not found");
 
   return NextResponse.json(creator);
 }
@@ -50,76 +54,59 @@ export async function PATCH(
   const { slug } = await params;
 
   const slugResult = validateSlug(slug);
-  if (!slugResult.ok) {
-    return NextResponse.json({ error: slugResult.error }, { status: 400 });
-  }
+  if (!slugResult.ok) return badRequest(slugResult.error);
 
-  let body: UpdateRequestBody;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const body = await parseJsonBody<UpdateRequestBody>(request);
+  if (!body) return badRequest("Invalid JSON body");
 
   if (!body.walletAddress || typeof body.walletAddress !== "string") {
-    return NextResponse.json(
-      { error: "walletAddress is required" },
-      { status: 400 },
-    );
+    return badRequest("walletAddress is required");
   }
 
-  // Validate updates
+  // Display name (optional update)
+  let displayName: string | undefined;
   if (body.displayName !== undefined) {
     if (
       typeof body.displayName !== "string" ||
       body.displayName.trim().length === 0
     ) {
-      return NextResponse.json(
-        { error: "Display name cannot be empty" },
-        { status: 400 },
+      return badRequest("Display name cannot be empty");
+    }
+    if (body.displayName.length > DISPLAY_NAME_MAX) {
+      return badRequest(
+        `Display name must be ${DISPLAY_NAME_MAX} characters or less`,
       );
     }
-    if (body.displayName.length > 50) {
-      return NextResponse.json(
-        { error: "Display name must be 50 characters or less" },
-        { status: 400 },
-      );
-    }
+    displayName = body.displayName.trim();
   }
 
+  // Bio (optional update)
+  let bio: string | undefined;
   if (body.bio !== undefined) {
     if (typeof body.bio !== "string") {
-      return NextResponse.json(
-        { error: "Bio must be a string" },
-        { status: 400 },
-      );
+      return badRequest("Bio must be a string");
     }
-    if (body.bio.length > 280) {
-      return NextResponse.json(
-        { error: "Bio must be 280 characters or less" },
-        { status: 400 },
-      );
+    if (body.bio.length > BIO_MAX) {
+      return badRequest(`Bio must be ${BIO_MAX} characters or less`);
     }
+    bio = body.bio.trim() || undefined;
   }
 
   try {
-    const store = getCreatorsStore();
-    const updated = await store.update(slugResult.slug, body.walletAddress, {
-      displayName: body.displayName?.trim(),
-      bio: body.bio?.trim() || undefined,
-    });
+    const updated = await getCreatorsStore().update(
+      slugResult.slug,
+      body.walletAddress,
+      { displayName, bio },
+    );
     return NextResponse.json(updated);
   } catch (err) {
     if (err instanceof NotProfileOwnerError) {
-      return NextResponse.json({ error: err.message }, { status: 403 });
+      return forbidden(err.message);
     }
     if ((err as Error).message.includes("not found")) {
-      return NextResponse.json({ error: "Creator not found" }, { status: 404 });
+      return notFound("Creator not found");
     }
     console.error("Failed to update creator:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return serverError();
   }
 }

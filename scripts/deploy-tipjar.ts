@@ -20,10 +20,8 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { Keypair } from "@stellar/stellar-sdk";
-import { mnemonicToSeed, validateMnemonic } from "bip39";
 import { config as loadDotenv } from "dotenv";
-import { derivePath } from "ed25519-hd-key";
+import { deriveKeypairFromMnemonic } from "../src/lib/hd-wallet";
 
 loadDotenv({ path: ".env.local" });
 loadDotenv({ path: ".env" });
@@ -53,21 +51,12 @@ async function main() {
     console.error("✗ TEST_MNEMONIC is missing in .env.local");
     process.exit(1);
   }
-  if (!validateMnemonic(mnemonic)) {
-    console.error("✗ TEST_MNEMONIC is not a valid BIP-39 mnemonic");
-    process.exit(1);
-  }
 
   const accountIndex = Number.parseInt(
     process.env.SERVER_ACCOUNT_INDEX ?? "2",
     10,
   );
-  const seed = await mnemonicToSeed(mnemonic);
-  const { key } = derivePath(
-    `m/44'/148'/${accountIndex}'`,
-    seed.toString("hex"),
-  );
-  const serverKp = Keypair.fromRawEd25519Seed(key);
+  const serverKp = await deriveKeypairFromMnemonic(mnemonic, accountIndex);
   const serverAddress = serverKp.publicKey();
   const serverSecret = serverKp.secret();
 

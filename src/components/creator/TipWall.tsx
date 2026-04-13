@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { stroopsToUsdc } from "@/lib/stellar";
 
 type WallMessage = {
   from: string;
@@ -53,16 +54,6 @@ export function TipWall({ slug }: Props) {
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
-
-  function formatAmount(stroops: string): string {
-    // USDC is 7 decimals on Stellar SAC
-    const big = BigInt(stroops);
-    const divisor = BigInt(10_000_000);
-    const whole = big / divisor;
-    const frac = big % divisor;
-    const fracStr = frac.toString().padStart(7, "0").replace(/0+$/, "");
-    return fracStr.length > 0 ? `${whole}.${fracStr}` : whole.toString();
-  }
 
   function formatTimestamp(timestamp: string): string {
     const ms = Number(BigInt(timestamp)) * 1000;
@@ -123,7 +114,7 @@ export function TipWall({ slug }: Props) {
                     </span>{" "}
                     tipped{" "}
                     <span className="text-gray-700 dark:text-gray-300">
-                      +{formatAmount(msg.amount)} USDC
+                      +{stroopsToUsdc(msg.amount)} USDC
                     </span>
                   </span>
                   <span>{formatTimestamp(msg.timestamp)}</span>

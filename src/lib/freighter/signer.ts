@@ -11,9 +11,10 @@ import type { ClientStellarSigner } from "@x402/stellar";
  * required, `signTransaction` optional). Freighter v6 exposes both but uses
  * slightly different return shapes — we normalize here.
  *
- * The key differences we handle:
- *   - Freighter's `signedAuthEntry` can be `null` (user cancelled) → throw
- *   - Freighter returns errors as `{ error: { message } }` → throw with message
+ * Unlike the rest of `lib/freighter/`, this adapter **throws** on error
+ * instead of returning a tagged union because it implements the external
+ * `ClientStellarSigner` contract from `@x402/stellar`, which doesn't allow
+ * return-based error handling.
  *
  * Usage:
  *   const signer = createFreighterSigner(address);
@@ -35,7 +36,6 @@ export function createFreighterSigner(address: string): ClientStellarSigner {
       if (result.error) {
         throw new Error(`Freighter: ${result.error.message}`);
       }
-
       if (result.signedAuthEntry === null) {
         throw new Error("Freighter: user cancelled signing");
       }

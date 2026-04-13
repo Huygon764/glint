@@ -19,12 +19,10 @@ const STELLAR_NETWORK =
   (process.env.X402_STELLAR_NETWORK as "stellar:testnet" | "stellar:pubnet") ??
   "stellar:testnet";
 
-const TEST_RECIPIENT_ADDRESS = process.env.X402_TEST_RECIPIENT_ADDRESS ?? "";
-
 // Tip amount limits (USDC)
-const MIN_TIP_AMOUNT = 0.01;
-const MAX_TIP_AMOUNT = 1000;
-const DEFAULT_TIP_AMOUNT = "0.01";
+export const MIN_TIP_AMOUNT = 0.01;
+export const MAX_TIP_AMOUNT = 1000;
+export const DEFAULT_TIP_AMOUNT = "0.01";
 
 /**
  * Build the framework-agnostic x402 resource server.
@@ -89,41 +87,23 @@ async function resolveCreatorPayTo(
  * Build the route configuration for the x402 HTTP resource server.
  *
  * Routes:
- *   - POST /api/tip/test     → fixed recipient (Phase 2 debug)
- *   - POST /api/tip/[slug]   → dynamic recipient + dynamic price (Phase 4)
+ *   - POST /api/tip/[slug]   → dynamic recipient + dynamic price
  */
 function buildRoutes(): RoutesConfig {
-  const routes: RoutesConfig = {};
-
-  if (TEST_RECIPIENT_ADDRESS) {
-    routes["POST /api/tip/test"] = {
+  return {
+    "POST /api/tip/[slug]": {
       accepts: [
         {
           scheme: "exact",
-          price: "0.01",
+          price: parseTipAmount,
           network: STELLAR_NETWORK,
-          payTo: TEST_RECIPIENT_ADDRESS,
+          payTo: resolveCreatorPayTo,
         },
       ],
-      description: "Test tip (Phase 2 verification)",
+      description: "Tip a creator on Glint",
       mimeType: "application/json",
-    };
-  }
-
-  routes["POST /api/tip/[slug]"] = {
-    accepts: [
-      {
-        scheme: "exact",
-        price: parseTipAmount,
-        network: STELLAR_NETWORK,
-        payTo: resolveCreatorPayTo,
-      },
-    ],
-    description: "Tip a creator on Glint",
-    mimeType: "application/json",
+    },
   };
-
-  return routes;
 }
 
 /**

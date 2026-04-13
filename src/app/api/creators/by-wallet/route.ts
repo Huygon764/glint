@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { badRequest, notFound } from "@/lib/api-helpers";
 import { getCreatorsStore } from "@/lib/creators";
-
-const STELLAR_ADDRESS_REGEX = /^G[A-Z0-9]{55}$/;
+import { isValidStellarAddress } from "@/lib/stellar";
 
 /**
  * GET /api/creators/by-wallet?address=G...
@@ -15,25 +15,14 @@ export async function GET(request: Request) {
   const address = url.searchParams.get("address");
 
   if (!address) {
-    return NextResponse.json(
-      { error: "address query parameter is required" },
-      { status: 400 },
-    );
+    return badRequest("address query parameter is required");
+  }
+  if (!isValidStellarAddress(address)) {
+    return badRequest("Invalid Stellar wallet address");
   }
 
-  if (!STELLAR_ADDRESS_REGEX.test(address)) {
-    return NextResponse.json(
-      { error: "Invalid Stellar wallet address" },
-      { status: 400 },
-    );
-  }
-
-  const store = getCreatorsStore();
-  const creator = await store.getByWallet(address);
-
-  if (!creator) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const creator = await getCreatorsStore().getByWallet(address);
+  if (!creator) return notFound();
 
   return NextResponse.json(creator);
 }

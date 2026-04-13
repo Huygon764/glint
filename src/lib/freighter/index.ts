@@ -5,13 +5,18 @@ import {
   setAllowed,
   signTransaction,
 } from "@stellar/freighter-api";
-import { NETWORK_PASSPHRASE } from "./stellar";
+import { NETWORK_PASSPHRASE } from "../stellar";
 
 /**
- * Result type for Freighter operations.
- * Freighter API v6 returns `{ data..., error? }` instead of throwing.
- * We normalize to a tagged union for easier handling in UI.
+ * Freighter wallet helpers.
+ *
+ * Freighter API v6 returns `{ data..., error? }` instead of throwing. We
+ * normalize all calls here to a tagged union {@link FreighterResult} so UI
+ * code can branch without try/catch. See `./signer.ts` for the x402-compatible
+ * signer interface — that one has to throw because it implements an external
+ * contract (`ClientStellarSigner`) that doesn't allow tagged unions.
  */
+
 export type FreighterResult<T> =
   | { ok: true; value: T }
   | { ok: false; error: string };
@@ -19,6 +24,10 @@ export type FreighterResult<T> =
 /**
  * Check if Freighter extension is installed AND this dApp is allowed.
  * Used for silent auto-reconnect on mount.
+ *
+ * Returns `{ ok: true, value: null }` when Freighter is not installed or
+ * not yet allowed — these are not errors, just "no active connection".
+ * Returns `{ ok: true, value: address }` when a previous session exists.
  */
 export async function checkPreviouslyAllowed(): Promise<
   FreighterResult<string | null>
@@ -39,7 +48,7 @@ export async function checkPreviouslyAllowed(): Promise<
 }
 
 /**
- * Full connect flow: check installed, prompt allow, return address.
+ * Full connect flow: check installed → prompt allow → return address.
  */
 export async function connectFreighter(): Promise<FreighterResult<string>> {
   const conn = await isConnected();
@@ -56,9 +65,7 @@ export async function connectFreighter(): Promise<FreighterResult<string>> {
 
   if (!allowed.isAllowed) {
     const granted = await setAllowed();
-    if (granted.error) {
-      return { ok: false, error: granted.error.message };
-    }
+    if (granted.error) return { ok: false, error: granted.error.message };
     if (!granted.isAllowed) {
       return { ok: false, error: "Connection rejected by user" };
     }
@@ -74,7 +81,8 @@ export async function connectFreighter(): Promise<FreighterResult<string>> {
 }
 
 /**
- * Sign a transaction XDR via Freighter.
+ * Sign a full transaction XDR via Freighter.
+ * Used for raw Stellar transactions (e.g. the Phase 1 XLM test form).
  */
 export async function signTxWithFreighter(
   unsignedXdr: string,
@@ -87,3 +95,5 @@ export async function signTxWithFreighter(
   if (signed.error) return { ok: false, error: signed.error.message };
   return { ok: true, value: signed.signedTxXdr };
 }
+
+export { createFreighterSigner } from "./signer";

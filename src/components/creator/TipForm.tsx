@@ -4,7 +4,7 @@ import { x402Client } from "@x402/core/client";
 import { wrapFetchWithPayment } from "@x402/fetch";
 import { ExactStellarScheme } from "@x402/stellar/exact/client";
 import { type FormEvent, useState } from "react";
-import { createFreighterSigner } from "@/lib/freighter-signer";
+import { createFreighterSigner } from "@/lib/freighter";
 import { useWalletStore } from "@/stores/wallet";
 
 const PRESET_AMOUNTS = ["0.10", "0.50", "1.00", "5.00"];

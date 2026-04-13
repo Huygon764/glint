@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import {
+  badRequest,
+  conflict,
+  parseJsonBody,
+  serverError,
+} from "@/lib/api-helpers";
+import {
   getCreatorsStore,
   SlugTakenError,
   validateSlug,
   WalletAlreadyHasProfileError,
 } from "@/lib/creators";
+import { isValidStellarAddress } from "@/lib/stellar";
 
-const STELLAR_ADDRESS_REGEX = /^G[A-Z0-9]{55}$/;
+const DISPLAY_NAME_MAX = 50;
+const BIO_MAX = 280;
 
 type CreateRequestBody = {
   slug?: string;
@@ -26,85 +34,53 @@ type CreateRequestBody = {
  * For production, require a signed message (SEP-10 auth).
  */
 export async function POST(request: Request) {
-  let body: CreateRequestBody;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const body = await parseJsonBody<CreateRequestBody>(request);
+  if (!body) return badRequest("Invalid JSON body");
 
-  // Validate slug
   const slugResult = validateSlug(body.slug ?? "");
-  if (!slugResult.ok) {
-    return NextResponse.json({ error: slugResult.error }, { status: 400 });
+  if (!slugResult.ok) return badRequest(slugResult.error);
+
+  if (!isValidStellarAddress(body.walletAddress)) {
+    return badRequest("Invalid Stellar wallet address");
   }
 
-  // Validate wallet address format
-  if (
-    !body.walletAddress ||
-    typeof body.walletAddress !== "string" ||
-    !STELLAR_ADDRESS_REGEX.test(body.walletAddress)
-  ) {
-    return NextResponse.json(
-      { error: "Invalid Stellar wallet address" },
-      { status: 400 },
+  // Display name
+  const displayName =
+    typeof body.displayName === "string" ? body.displayName.trim() : "";
+  if (displayName.length === 0) {
+    return badRequest("Display name is required");
+  }
+  if (displayName.length > DISPLAY_NAME_MAX) {
+    return badRequest(
+      `Display name must be ${DISPLAY_NAME_MAX} characters or less`,
     );
   }
 
-  // Validate display name
-  if (
-    !body.displayName ||
-    typeof body.displayName !== "string" ||
-    body.displayName.trim().length === 0
-  ) {
-    return NextResponse.json(
-      { error: "Display name is required" },
-      { status: 400 },
-    );
+  // Bio (optional)
+  if (body.bio !== undefined && typeof body.bio !== "string") {
+    return badRequest("Bio must be a string");
   }
-  if (body.displayName.length > 50) {
-    return NextResponse.json(
-      { error: "Display name must be 50 characters or less" },
-      { status: 400 },
-    );
-  }
-
-  // Validate bio (optional)
-  if (body.bio !== undefined) {
-    if (typeof body.bio !== "string") {
-      return NextResponse.json(
-        { error: "Bio must be a string" },
-        { status: 400 },
-      );
-    }
-    if (body.bio.length > 280) {
-      return NextResponse.json(
-        { error: "Bio must be 280 characters or less" },
-        { status: 400 },
-      );
-    }
+  const bio = body.bio?.trim();
+  if (bio !== undefined && bio.length > BIO_MAX) {
+    return badRequest(`Bio must be ${BIO_MAX} characters or less`);
   }
 
   try {
-    const store = getCreatorsStore();
-    const creator = await store.create({
+    const creator = await getCreatorsStore().create({
       slug: slugResult.slug,
       walletAddress: body.walletAddress,
-      displayName: body.displayName.trim(),
-      bio: body.bio?.trim() || undefined,
+      displayName,
+      bio: bio || undefined,
     });
     return NextResponse.json(creator, { status: 201 });
   } catch (err) {
-    if (err instanceof SlugTakenError) {
-      return NextResponse.json({ error: err.message }, { status: 409 });
-    }
-    if (err instanceof WalletAlreadyHasProfileError) {
-      return NextResponse.json({ error: err.message }, { status: 409 });
+    if (
+      err instanceof SlugTakenError ||
+      err instanceof WalletAlreadyHasProfileError
+    ) {
+      return conflict(err.message);
     }
     console.error("Failed to create creator:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return serverError();
   }
 }

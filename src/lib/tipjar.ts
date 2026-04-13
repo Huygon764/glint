@@ -2,7 +2,7 @@ import {
   Address,
   BASE_FEE,
   Contract,
-  Keypair,
+  type Keypair,
   Networks,
   nativeToScVal,
   rpc,
@@ -10,8 +10,7 @@ import {
   TransactionBuilder,
   type xdr,
 } from "@stellar/stellar-sdk";
-import { mnemonicToSeed } from "bip39";
-import { derivePath } from "ed25519-hd-key";
+import { deriveKeypairFromMnemonic } from "./hd-wallet";
 
 /**
  * TipJar contract client (server-side).
@@ -31,10 +30,13 @@ const DEFAULT_RPC_URL = "https://soroban-testnet.stellar.org";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
+const POLL_TIMEOUT_MS = 30_000;
+const POLL_INTERVAL_MS = 1000;
 
-/**
- * Lazy-loaded server keypair. Derived once, cached for the process lifetime.
- */
+//
+// ── Config & singletons ────────────────────────────────────────────────────
+//
+
 let _serverKeypair: Keypair | null = null;
 
 async function getServerKeypair(): Promise<Keypair> {
@@ -50,13 +52,7 @@ async function getServerKeypair(): Promise<Keypair> {
     process.env.SERVER_ACCOUNT_INDEX ?? "2",
     10,
   );
-
-  const seed = await mnemonicToSeed(mnemonic);
-  const { key } = derivePath(
-    `m/44'/148'/${accountIndex}'`,
-    seed.toString("hex"),
-  );
-  _serverKeypair = Keypair.fromRawEd25519Seed(key);
+  _serverKeypair = await deriveKeypairFromMnemonic(mnemonic, accountIndex);
   return _serverKeypair;
 }
 
@@ -73,6 +69,10 @@ function getContractId(): string {
   return id;
 }
 
+//
+// ── Types ──────────────────────────────────────────────────────────────────
+//
+
 /**
  * Represents a tip message as returned by the contract.
  * Matches the Rust `TipMessage` struct.
@@ -86,58 +86,86 @@ export type TipMessage = {
 
 type SendResult = { ok: true; hash: string } | { ok: false; error: string };
 
+//
+// ── Low-level RPC helpers ──────────────────────────────────────────────────
+//
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 /**
- * Invoke a contract function and wait for the result.
- * Handles simulate → sign → send → poll.
+ * Poll a Soroban RPC server until a transaction reaches a terminal state or
+ * the timeout elapses. Returns a SendResult instead of throwing so the caller
+ * can decide whether to retry.
  */
-async function invoke(fn: string, args: xdr.ScVal[]): Promise<SendResult> {
+async function pollTransactionResult(
+  rpcServer: rpc.Server,
+  hash: string,
+): Promise<SendResult> {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await sleep(POLL_INTERVAL_MS);
+    const res = await rpcServer.getTransaction(hash);
+    if (res.status === "NOT_FOUND") continue;
+    if (res.status === "SUCCESS") {
+      return { ok: true, hash };
+    }
+    if (res.status === "FAILED") {
+      return {
+        ok: false,
+        error: `tx failed: ${JSON.stringify(res.resultXdr ?? {})}`,
+      };
+    }
+  }
+  return { ok: false, error: "tx polling timed out" };
+}
+
+/**
+ * Build + simulate + sign + submit a single contract-invoke transaction.
+ * The actual wait for confirmation is delegated to {@link pollTransactionResult}.
+ */
+async function submitContractInvoke(
+  fn: string,
+  args: xdr.ScVal[],
+): Promise<SendResult> {
   const kp = await getServerKeypair();
   const rpcServer = getRpcClient();
   const contractId = getContractId();
 
+  const sourceAccount = await rpcServer.getAccount(kp.publicKey());
+  const contract = new Contract(contractId);
+
+  const tx = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(contract.call(fn, ...args))
+    .setTimeout(60)
+    .build();
+
+  // simulate + assemble footprint + auth + resource fee
+  const prepared = await rpcServer.prepareTransaction(tx);
+  prepared.sign(kp);
+
+  const sendRes = await rpcServer.sendTransaction(prepared);
+  if (sendRes.status !== "PENDING") {
+    return {
+      ok: false,
+      error: `send failed: ${sendRes.status} ${JSON.stringify(
+        sendRes.errorResult ?? {},
+      )}`,
+    };
+  }
+
+  return pollTransactionResult(rpcServer, sendRes.hash);
+}
+
+/**
+ * Top-level invoke helper with error normalization.
+ * Wraps {@link submitContractInvoke} so thrown errors turn into SendResults.
+ */
+async function invoke(fn: string, args: xdr.ScVal[]): Promise<SendResult> {
   try {
-    const sourceAccount = await rpcServer.getAccount(kp.publicKey());
-    const contract = new Contract(contractId);
-
-    const tx = new TransactionBuilder(sourceAccount, {
-      fee: BASE_FEE,
-      networkPassphrase: NETWORK_PASSPHRASE,
-    })
-      .addOperation(contract.call(fn, ...args))
-      .setTimeout(60)
-      .build();
-
-    // simulate + assemble footprint + auth + resource fee
-    const prepared = await rpcServer.prepareTransaction(tx);
-    prepared.sign(kp);
-
-    const sendRes = await rpcServer.sendTransaction(prepared);
-    if (sendRes.status !== "PENDING") {
-      return {
-        ok: false,
-        error: `send failed: ${sendRes.status} ${JSON.stringify(
-          sendRes.errorResult ?? {},
-        )}`,
-      };
-    }
-
-    // Poll for completion
-    const deadline = Date.now() + 30_000;
-    while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 1000));
-      const getRes = await rpcServer.getTransaction(sendRes.hash);
-      if (getRes.status === "NOT_FOUND") continue;
-      if (getRes.status === "SUCCESS") {
-        return { ok: true, hash: sendRes.hash };
-      }
-      if (getRes.status === "FAILED") {
-        return {
-          ok: false,
-          error: `tx failed: ${JSON.stringify(getRes.resultXdr ?? {})}`,
-        };
-      }
-    }
-    return { ok: false, error: "tx polling timed out" };
+    return await submitContractInvoke(fn, args);
   } catch (err) {
     return {
       ok: false,
@@ -145,6 +173,10 @@ async function invoke(fn: string, args: xdr.ScVal[]): Promise<SendResult> {
     };
   }
 }
+
+//
+// ── Public API ─────────────────────────────────────────────────────────────
+//
 
 /**
  * Record a tip message on-chain via the TipJar contract.
@@ -179,7 +211,7 @@ export async function recordTipMessage(
     );
 
     if (attempt < MAX_RETRIES) {
-      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      await sleep(RETRY_DELAY_MS);
     }
   }
 

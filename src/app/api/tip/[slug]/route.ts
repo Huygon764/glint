@@ -1,10 +1,11 @@
 import type { HTTPRequestContext } from "@x402/core/server";
+import { badRequest, notFound, parseJsonBody } from "@/lib/api-helpers";
 import { getCreatorsStore, validateSlug } from "@/lib/creators";
 import { NextHTTPAdapter } from "@/lib/next-http-adapter";
+import { isValidStellarAddress, usdcToStroops } from "@/lib/stellar";
 import { recordTipMessage } from "@/lib/tipjar";
-import { getX402HttpServer } from "@/lib/x402-server";
+import { DEFAULT_TIP_AMOUNT, getX402HttpServer } from "@/lib/x402-server";
 
-const STELLAR_ADDRESS_REGEX = /^G[A-Z0-9]{55}$/;
 const MAX_MESSAGE_LEN = 280;
 
 type TipBody = {
@@ -40,41 +41,21 @@ export async function POST(
   const { slug } = await params;
 
   const slugResult = validateSlug(slug);
-  if (!slugResult.ok) {
-    return Response.json({ error: slugResult.error }, { status: 400 });
-  }
+  if (!slugResult.ok) return badRequest(slugResult.error);
 
   const creator = await getCreatorsStore().get(slugResult.slug);
-  if (!creator) {
-    return Response.json({ error: "Creator not found" }, { status: 404 });
-  }
+  if (!creator) return notFound("Creator not found");
 
-  // Parse optional body. Safe to call request.json() here — x402 server
-  // only needs headers + path, not body.
-  let body: TipBody = {};
-  try {
-    const parsed = await request.json();
-    if (parsed && typeof parsed === "object") {
-      body = parsed as TipBody;
-    }
-  } catch {
-    // No body or invalid JSON — fine, tip can proceed without a message.
-  }
+  // Parse optional body. Missing body is fine — tip proceeds without message.
+  const body = (await parseJsonBody<TipBody>(request)) ?? {};
 
-  // Validate optional message
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (message.length > MAX_MESSAGE_LEN) {
-    return Response.json(
-      { error: `Message must be ${MAX_MESSAGE_LEN} characters or less` },
-      { status: 400 },
-    );
+    return badRequest(`Message must be ${MAX_MESSAGE_LEN} characters or less`);
   }
 
   // Validate optional from (tipper address)
-  const from =
-    typeof body.from === "string" && STELLAR_ADDRESS_REGEX.test(body.from)
-      ? body.from
-      : undefined;
+  const from = isValidStellarAddress(body.from) ? body.from : undefined;
 
   const server = await getX402HttpServer();
 
@@ -127,11 +108,9 @@ export async function POST(
   if (from) {
     // amount comes from query param `amount`; convert decimal USDC → stroops
     const amountRaw = adapter.getQueryParam?.("amount");
-    const amountStr = typeof amountRaw === "string" ? amountRaw : "0.01";
-    const amountDecimal = Number.parseFloat(amountStr);
-    const amountStroops = BigInt(
-      Math.round(amountDecimal * 10_000_000), // 7 decimals
-    );
+    const amountStr =
+      typeof amountRaw === "string" ? amountRaw : DEFAULT_TIP_AMOUNT;
+    const amountStroops = usdcToStroops(amountStr);
 
     const record = await recordTipMessage(
       from,

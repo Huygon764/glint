@@ -15,14 +15,12 @@
  * Security: .env.local is gitignored. Never commit the mnemonic.
  */
 
-import { Keypair } from "@stellar/stellar-sdk";
 import { x402Client } from "@x402/core/client";
 import { wrapFetchWithPayment } from "@x402/fetch";
 import { createEd25519Signer } from "@x402/stellar";
 import { ExactStellarScheme } from "@x402/stellar/exact/client";
-import { mnemonicToSeed, validateMnemonic } from "bip39";
 import { config as loadDotenv } from "dotenv";
-import { derivePath } from "ed25519-hd-key";
+import { deriveKeypairFromMnemonic } from "../src/lib/hd-wallet";
 
 // Load .env.local (Next.js convention)
 loadDotenv({ path: ".env.local" });
@@ -36,25 +34,14 @@ async function main() {
     process.exit(1);
   }
 
-  if (!validateMnemonic(mnemonic)) {
-    console.error("✗ TEST_MNEMONIC is not a valid BIP-39 mnemonic");
-    process.exit(1);
-  }
-
   const accountIndex = Number.parseInt(
     process.env.TEST_ACCOUNT_INDEX ?? "1",
     10,
   );
 
-  const url = process.env.TEST_URL ?? "http://localhost:3000/api/tip/test";
+  const url = process.env.TEST_URL ?? "http://localhost:3000/api/tip/alice";
 
-  // Derive keypair via SEP-0005 HD path (Freighter-compatible)
-  const seed = await mnemonicToSeed(mnemonic);
-  const { key } = derivePath(
-    `m/44'/148'/${accountIndex}'`,
-    seed.toString("hex"),
-  );
-  const keypair = Keypair.fromRawEd25519Seed(key);
+  const keypair = await deriveKeypairFromMnemonic(mnemonic, accountIndex);
 
   console.log("=== Phase 2 x402 test ===");
   console.log(`Account index : ${accountIndex}`);
