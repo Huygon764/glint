@@ -60,6 +60,27 @@ export class WalletAlreadyHasProfileError extends Error {
 }
 
 /**
+ * Options for {@link CreatorsStore.list}.
+ */
+export type ListCreatorsOptions = {
+  /** Case-insensitive substring match against `slug` and `displayName`. */
+  search?: string;
+  /** Maximum number of results to return. Default 50. */
+  limit?: number;
+  /** Number of results to skip (for pagination). Default 0. */
+  offset?: number;
+};
+
+/**
+ * Result of {@link CreatorsStore.list} — includes total count so clients can
+ * know whether more pages exist.
+ */
+export type ListCreatorsResult = {
+  creators: Creator[];
+  total: number;
+};
+
+/**
  * Storage backend contract. All implementations must be async-safe.
  */
 export interface CreatorsStore {
@@ -86,6 +107,9 @@ export interface CreatorsStore {
     updates: UpdateCreatorInput,
   ): Promise<Creator>;
 
-  /** List all creators (for admin / debugging only). */
-  list(): Promise<Creator[]>;
+  /**
+   * List creators sorted newest-first. Supports substring search over
+   * slug + displayName and basic pagination.
+   */
+  list(options?: ListCreatorsOptions): Promise<ListCreatorsResult>;
 }

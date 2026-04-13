@@ -21,6 +21,12 @@ export default function Home() {
               Become a creator
             </Link>
             <Link
+              href="/browse"
+              className="px-6 py-3 border border-gray-300 dark:border-gray-700 rounded font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
+            >
+              Browse creators
+            </Link>
+            <Link
               href="/dashboard"
               className="px-6 py-3 border border-gray-300 dark:border-gray-700 rounded font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
             >

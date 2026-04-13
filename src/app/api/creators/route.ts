@@ -15,6 +15,8 @@ import { isValidStellarAddress } from "@/lib/stellar";
 
 const DISPLAY_NAME_MAX = 50;
 const BIO_MAX = 280;
+const LIST_DEFAULT_LIMIT = 20;
+const LIST_MAX_LIMIT = 100;
 
 type CreateRequestBody = {
   slug?: string;
@@ -22,6 +24,37 @@ type CreateRequestBody = {
   displayName?: string;
   bio?: string;
 };
+
+/**
+ * GET /api/creators?search=...&limit=20&offset=0
+ * Browse / search creators. Returns `{ creators, total }`.
+ *
+ * Public endpoint, no auth. Sorted newest-first.
+ */
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const search = url.searchParams.get("search") ?? undefined;
+
+  const rawLimit = Number.parseInt(
+    url.searchParams.get("limit") ?? String(LIST_DEFAULT_LIMIT),
+    10,
+  );
+  const limit = Math.min(
+    Math.max(1, Number.isFinite(rawLimit) ? rawLimit : LIST_DEFAULT_LIMIT),
+    LIST_MAX_LIMIT,
+  );
+
+  const rawOffset = Number.parseInt(url.searchParams.get("offset") ?? "0", 10);
+  const offset = Math.max(0, Number.isFinite(rawOffset) ? rawOffset : 0);
+
+  try {
+    const result = await getCreatorsStore().list({ search, limit, offset });
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error("Failed to list creators:", err);
+    return serverError();
+  }
+}
 
 /**
  * POST /api/creators

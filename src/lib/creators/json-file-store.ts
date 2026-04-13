@@ -4,11 +4,15 @@ import {
   type CreateCreatorInput,
   type Creator,
   type CreatorsStore,
+  type ListCreatorsOptions,
+  type ListCreatorsResult,
   NotProfileOwnerError,
   SlugTakenError,
   type UpdateCreatorInput,
   WalletAlreadyHasProfileError,
 } from "./types";
+
+const DEFAULT_LIST_LIMIT = 50;
 
 type StoreFile = {
   version: 1;
@@ -95,9 +99,30 @@ export class JSONFileStore implements CreatorsStore {
     return updated;
   }
 
-  async list(): Promise<Creator[]> {
+  async list(options: ListCreatorsOptions = {}): Promise<ListCreatorsResult> {
     const data = await this.load();
-    return [...data.creators];
+    const { search, limit = DEFAULT_LIST_LIMIT, offset = 0 } = options;
+
+    // Case-insensitive substring match on slug + displayName
+    let filtered = data.creators;
+    if (search && search.trim().length > 0) {
+      const needle = search.trim().toLowerCase();
+      filtered = filtered.filter(
+        (c) =>
+          c.slug.toLowerCase().includes(needle) ||
+          c.displayName.toLowerCase().includes(needle),
+      );
+    }
+
+    // Sort newest-first
+    const sorted = [...filtered].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
+
+    return {
+      creators: sorted.slice(offset, offset + limit),
+      total: sorted.length,
+    };
   }
 
   /**

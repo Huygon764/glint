@@ -18,6 +18,7 @@ const RESERVED_SLUGS = new Set([
   "test",
   "create",
   "dashboard",
+  "browse",
   "admin",
   "login",
   "logout",
