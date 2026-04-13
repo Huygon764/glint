@@ -4,12 +4,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { EmptyState, WalletIcon } from "@/components/ui/EmptyState";
 import { API_ENDPOINTS, ApiError, apiClient } from "@/lib/api";
-import { BIO_MAX, type Creator, DISPLAY_NAME_MAX } from "@/lib/creators";
+import { BIO_MAX, DISPLAY_NAME_MAX } from "@/lib/creators/limits";
+import type { Creator } from "@/lib/creators/types";
 import { type FormStatus, isBusy } from "@/lib/form-status";
 import { shortenAddress } from "@/lib/stellar";
 import { useWalletStore } from "@/stores/wallet";
+
+const LABEL_CLASSES =
+  "block text-xs uppercase tracking-wider text-[var(--color-ink-soft)] mb-2";
+const INPUT_CLASSES =
+  "w-full h-11 px-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-sunken)] text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors disabled:opacity-60";
+const TEXTAREA_CLASSES =
+  "w-full px-3 py-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-sunken)] text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors resize-none disabled:opacity-60";
 
 export function CreateProfileForm() {
   const router = useRouter();
@@ -34,7 +44,7 @@ export function CreateProfileForm() {
     e.preventDefault();
     if (!address) return;
 
-    setStatus({ kind: "busy", label: "Creating..." });
+    setStatus({ kind: "busy", label: "Creating…" });
 
     try {
       const { data } = await apiClient.post<Creator>(API_ENDPOINTS.CREATORS, {
@@ -61,104 +71,117 @@ export function CreateProfileForm() {
 
   if (status.kind === "success") {
     return (
-      <div className="border border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950 rounded p-6 space-y-3">
-        <h2 className="font-semibold">Profile created</h2>
-        <p className="text-sm">
-          Your tipping link:{" "}
-          <Link href={`/${status.data.slug}`} className="font-mono underline">
-            /{status.data.slug}
-          </Link>
+      <Card padding="lg">
+        <h2 className="font-display text-2xl mb-3 text-[var(--color-success)]">
+          Profile created
+        </h2>
+        <p className="text-sm text-[var(--color-ink-soft)] mb-2">
+          Your tipping link is live:
         </p>
-        <p className="text-xs text-gray-600 dark:text-gray-400">
-          Redirecting...
+        <Link
+          href={`/${status.data.slug}`}
+          className="font-mono text-lg text-[var(--color-ink)] underline"
+        >
+          glint.app/{status.data.slug}
+        </Link>
+        <p className="text-xs text-[var(--color-ink-muted)] mt-4">
+          Redirecting to your public page…
         </p>
-      </div>
+      </Card>
     );
   }
 
   const isSubmitting = isBusy(status);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <label htmlFor="slug" className="block text-sm font-medium mb-1">
-          Handle <span className="text-red-500">*</span>
-        </label>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">glint.app/</span>
+    <Card padding="lg">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="slug" className={LABEL_CLASSES}>
+            Handle <span className="text-[var(--color-error)]">*</span>
+          </label>
+          <div className="flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-sunken)] focus-within:border-[var(--color-accent)] transition-colors">
+            <span className="pl-3 pr-1 text-sm text-[var(--color-ink-muted)] font-mono">
+              glint.app/
+            </span>
+            <input
+              id="slug"
+              type="text"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value.toLowerCase())}
+              placeholder="alice"
+              required
+              pattern="[a-z0-9_-]{3,20}"
+              title="3-20 lowercase letters, digits, dashes or underscores"
+              disabled={isSubmitting}
+              className="flex-1 h-11 px-1 bg-transparent text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted)] focus:outline-none font-mono text-sm disabled:opacity-60"
+            />
+          </div>
+          <p className="text-xs text-[var(--color-ink-muted)] mt-2">
+            3–20 characters. Lowercase letters, digits, dashes, underscores.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="displayName" className={LABEL_CLASSES}>
+            Display name <span className="text-[var(--color-error)]">*</span>
+          </label>
           <input
-            id="slug"
+            id="displayName"
             type="text"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value.toLowerCase())}
-            placeholder="alice"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="Alice Chen"
             required
-            pattern="[a-z0-9_-]{3,20}"
-            title="3-20 lowercase letters, digits, dashes or underscores"
+            maxLength={DISPLAY_NAME_MAX}
             disabled={isSubmitting}
-            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 font-mono text-sm disabled:opacity-50"
+            className={INPUT_CLASSES}
           />
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          3-20 characters. Lowercase letters, digits, dashes, underscores.
-        </p>
-      </div>
 
-      <div>
-        <label htmlFor="displayName" className="block text-sm font-medium mb-1">
-          Display name <span className="text-red-500">*</span>
-        </label>
-        <input
-          id="displayName"
-          type="text"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="Alice"
-          required
-          maxLength={DISPLAY_NAME_MAX}
-          disabled={isSubmitting}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-sm disabled:opacity-50"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="bio" className="block text-sm font-medium mb-1">
-          Bio
-        </label>
-        <textarea
-          id="bio"
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          placeholder="What you do, why people should tip you..."
-          maxLength={BIO_MAX}
-          rows={3}
-          disabled={isSubmitting}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-sm disabled:opacity-50 resize-none"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          {bio.length}/{BIO_MAX}
-        </p>
-      </div>
-
-      <div className="pt-2">
-        <div className="text-xs text-gray-500 mb-3">
-          Wallet:{" "}
-          <span className="font-mono">{shortenAddress(address, 6, 6)}</span>
+        <div>
+          <label htmlFor="bio" className={LABEL_CLASSES}>
+            Bio
+          </label>
+          <textarea
+            id="bio"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="What you do, why people should tip you…"
+            maxLength={BIO_MAX}
+            rows={3}
+            disabled={isSubmitting}
+            className={TEXTAREA_CLASSES}
+          />
+          <p className="text-xs text-[var(--color-ink-muted)] mt-1 text-right font-mono">
+            {bio.length}/{BIO_MAX}
+          </p>
         </div>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded hover:opacity-90 disabled:opacity-50 font-medium"
-        >
-          {status.kind === "busy" ? status.label : "Create profile"}
-        </button>
-      </div>
 
-      {status.kind === "error" && (
-        <div className="text-sm text-red-600 dark:text-red-400">
-          {status.message}
+        <div className="pt-2 border-t border-[var(--color-border)]">
+          <div className="text-xs text-[var(--color-ink-muted)] mb-4">
+            Tips will be sent to{" "}
+            <span className="font-mono text-[var(--color-ink-soft)]">
+              {shortenAddress(address, 6, 6)}
+            </span>
+          </div>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            variant="primary"
+            size="lg"
+            fullWidth
+          >
+            {status.kind === "busy" ? status.label : "Create profile"}
+          </Button>
         </div>
-      )}
-    </form>
+
+        {status.kind === "error" && (
+          <div className="text-sm text-[var(--color-error)] break-words">
+            {status.message}
+          </div>
+        )}
+      </form>
+    </Card>
   );
 }

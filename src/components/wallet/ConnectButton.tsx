@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/Button";
 import { shortenAddress } from "@/lib/stellar";
 import { useWalletStore } from "@/stores/wallet";
 
@@ -12,33 +13,34 @@ export function ConnectButton() {
 
   if (address) {
     return (
-      <div className="flex items-center gap-3">
-        <span className="font-mono text-sm bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded">
-          {shortenAddress(address)}
-        </span>
-        <button
-          type="button"
-          onClick={disconnect}
-          className="px-4 py-1.5 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
-        >
-          Disconnect
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={disconnect}
+        title="Click to disconnect"
+        className="inline-flex items-center gap-2 h-10 px-4 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-sunken)] hover:border-[var(--color-border-strong)] transition-colors text-sm"
+      >
+        <span
+          className="w-2 h-2 rounded-full bg-[var(--color-success)]"
+          aria-hidden="true"
+        />
+        <span className="font-mono">{shortenAddress(address)}</span>
+      </button>
     );
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
-      <button
+    <div className="flex flex-col items-end gap-1">
+      <Button
         type="button"
         onClick={connect}
         disabled={isConnecting}
-        className="px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded hover:opacity-90 disabled:opacity-50 text-sm font-medium"
+        variant="primary"
+        size="md"
       >
-        {isConnecting ? "Connecting..." : "Connect Freighter"}
-      </button>
+        {isConnecting ? "Connecting…" : "Connect Wallet"}
+      </Button>
       {error && (
-        <span className="text-red-600 dark:text-red-400 text-xs mt-1 max-w-xs">
+        <span className="text-[var(--color-error)] text-xs max-w-xs text-right">
           {error}
         </span>
       )}

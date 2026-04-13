@@ -54,7 +54,11 @@ export class NotProfileOwnerError extends Error {
  */
 export class WalletAlreadyHasProfileError extends Error {
   constructor(walletAddress: string) {
-    super(`Wallet ${walletAddress} already has a profile`);
+    const short =
+      walletAddress.length > 12
+        ? `${walletAddress.slice(0, 4)}…${walletAddress.slice(-4)}`
+        : walletAddress;
+    super(`This wallet (${short}) already has a profile`);
     this.name = "WalletAlreadyHasProfileError";
   }
 }

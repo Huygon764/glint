@@ -8,10 +8,10 @@ import { WalletBalances } from "@/components/wallet/WalletBalances";
  */
 export default function TestPage() {
   return (
-    <PageShell maxWidth="3xl" padding="p-8">
-      <h1 className="text-2xl font-bold mb-1">Glint / Test</h1>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
-        Stellar wallet test page (Phase 1)
+    <PageShell maxWidth="3xl">
+      <h1 className="font-display text-4xl mb-2">Test page</h1>
+      <p className="text-sm text-[var(--color-ink-soft)] mb-8">
+        Stellar wallet test page (Phase 1 dev)
       </p>
 
       <div className="space-y-6">
@@ -19,8 +19,8 @@ export default function TestPage() {
         <SendXlmForm />
       </div>
 
-      <footer className="mt-16 pt-6 border-t border-gray-200 dark:border-gray-800">
-        <p className="text-xs text-gray-500">
+      <footer className="mt-16 pt-6 border-t border-[var(--color-border)]">
+        <p className="text-xs text-[var(--color-ink-muted)]">
           Network: Stellar Testnet. Install{" "}
           <a
             href="https://freighter.app"

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { API_ENDPOINTS, ApiError, apiClient } from "@/lib/api";
-import type { Creator } from "@/lib/creators";
+import type { Creator } from "@/lib/creators/types";
 
 export type LoadState =
   | { kind: "idle" }

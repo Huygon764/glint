@@ -1,6 +1,8 @@
 "use client";
 
+import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { shortenAddress } from "@/lib/stellar";
 import { useWalletStore } from "@/stores/wallet";
 
 export function WalletBalances() {
@@ -14,46 +16,78 @@ export function WalletBalances() {
   if (!address) return null;
 
   return (
-    <div className="border border-gray-300 dark:border-gray-700 rounded p-4 space-y-3 max-w-md">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Balances</h3>
+    <Card padding="lg">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="font-display text-2xl">Wallet</h2>
         <button
           type="button"
           onClick={refreshBalances}
           disabled={isLoadingBalances}
-          className="text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+          className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] underline disabled:opacity-50"
         >
-          {isLoadingBalances ? "Loading..." : "Refresh"}
+          {isLoadingBalances ? "Loading…" : "Refresh"}
         </button>
       </div>
 
-      <div className="flex justify-between items-baseline">
-        <span className="text-sm text-gray-600 dark:text-gray-400">XLM</span>
-        {xlmBalance === null && isLoadingBalances ? (
-          <Skeleton className="h-4 w-20" />
-        ) : (
-          <span className="font-mono text-sm">{xlmBalance ?? "—"}</span>
-        )}
+      <div className="mb-5">
+        <div className="text-xs uppercase tracking-wider text-[var(--color-ink-soft)] mb-2">
+          Connected address
+        </div>
+        <div className="font-mono text-sm text-[var(--color-ink)] break-all">
+          {shortenAddress(address, 8, 8)}
+        </div>
       </div>
 
-      <div className="flex justify-between items-baseline">
-        <span className="text-sm text-gray-600 dark:text-gray-400">USDC</span>
-        {usdcBalance === null && isLoadingBalances ? (
-          <Skeleton className="h-4 w-20" />
-        ) : hasUsdcTrustline ? (
-          <span className="font-mono text-sm">{usdcBalance ?? "0"}</span>
+      <div className="space-y-3 pt-4 border-t border-[var(--color-border)]">
+        <BalanceRow
+          label="XLM"
+          value={xlmBalance}
+          loading={isLoadingBalances && xlmBalance === null}
+        />
+        {hasUsdcTrustline ? (
+          <BalanceRow
+            label="USDC"
+            value={usdcBalance ?? "0"}
+            loading={isLoadingBalances && usdcBalance === null}
+          />
         ) : (
-          <span className="text-xs text-amber-600 dark:text-amber-400">
-            No trustline
-          </span>
+          <div className="flex items-baseline justify-between text-sm">
+            <span className="text-[var(--color-ink-soft)]">USDC</span>
+            <span className="text-xs text-[var(--color-warn)]">
+              No trustline
+            </span>
+          </div>
         )}
       </div>
 
       {!hasUsdcTrustline && xlmBalance !== null && xlmBalance !== "0" && (
-        <p className="text-xs text-gray-500 dark:text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-800">
-          You need a USDC trustline to receive tips. Set up in Freighter or
-          another Stellar wallet.
+        <p className="text-xs text-[var(--color-ink-muted)] pt-4 mt-4 border-t border-[var(--color-border)]">
+          You need a USDC trustline to receive tips. Open Freighter → Manage
+          Assets → Add USDC.
         </p>
+      )}
+    </Card>
+  );
+}
+
+function BalanceRow({
+  label,
+  value,
+  loading,
+}: {
+  label: string;
+  value: string | null;
+  loading: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between text-sm">
+      <span className="text-[var(--color-ink-soft)]">{label}</span>
+      {loading ? (
+        <Skeleton className="h-4 w-20" />
+      ) : (
+        <span className="font-mono text-[var(--color-ink)]">
+          {value ?? "—"}
+        </span>
       )}
     </div>
   );

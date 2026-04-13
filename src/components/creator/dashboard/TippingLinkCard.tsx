@@ -1,26 +1,59 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Card } from "@/components/ui/Card";
 
 type Props = {
   slug: string;
 };
 
 export function TippingLinkCard({ slug }: Props) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/${slug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link copied");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  }
+
   return (
-    <div className="border border-gray-300 dark:border-gray-700 rounded p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold">Your tipping link</h2>
+    <Card padding="lg">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-2xl">Your link</h2>
         <Link
           href={`/${slug}`}
-          className="text-sm text-blue-600 dark:text-blue-400 underline"
+          className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] underline"
         >
-          View public page
+          Open public page →
         </Link>
       </div>
-      <div className="font-mono text-sm bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded">
-        /{slug}
+
+      <div className="flex rounded-md border border-[var(--color-border)] overflow-hidden">
+        <div className="flex-1 px-3 py-3 bg-[var(--color-surface-sunken)] font-mono text-sm text-[var(--color-ink)] truncate">
+          glint.app/{slug}
+        </div>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="px-4 bg-[var(--color-accent)] text-[var(--color-accent-ink)] text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
       </div>
-    </div>
+
+      <p className="text-xs text-[var(--color-ink-muted)] mt-3">
+        Share this link anywhere — your bio, newsletter, livestream overlay.
+        Tips go directly to your Stellar wallet.
+      </p>
+    </Card>
   );
 }

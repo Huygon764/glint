@@ -1,18 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { EmptyState, UserIcon, WalletIcon } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { WalletBalances } from "@/components/wallet/WalletBalances";
 import { useWalletStore } from "@/stores/wallet";
 import { EditProfileForm } from "./EditProfileForm";
 import { TippingLinkCard } from "./TippingLinkCard";
 import { useCreatorProfile } from "./useCreatorProfile";
 
-/**
- * Creator dashboard — orchestrates load/save state for the connected
- * wallet's profile. All rendering and mutation is delegated to child
- * components.
- */
 export function Dashboard() {
   const address = useWalletStore((s) => s.address);
   const { state, updateProfile } = useCreatorProfile(address);
@@ -30,23 +28,23 @@ export function Dashboard() {
   if (state.kind === "idle" || state.kind === "loading") {
     return (
       <div className="space-y-6">
-        <div className="border border-gray-300 dark:border-gray-700 rounded p-6 space-y-4">
-          <Skeleton className="h-5 w-40" />
+        <Card>
+          <Skeleton className="h-5 w-40 mb-4" />
           <Skeleton className="h-10 w-full" />
-        </div>
-        <div className="border border-gray-300 dark:border-gray-700 rounded p-6 space-y-4">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-24 w-full" />
+        </Card>
+        <Card>
+          <Skeleton className="h-5 w-32 mb-4" />
+          <Skeleton className="h-10 w-full mb-3" />
+          <Skeleton className="h-24 w-full mb-3" />
           <Skeleton className="h-10 w-32" />
-        </div>
+        </Card>
       </div>
     );
   }
 
   if (state.kind === "error") {
     return (
-      <div className="text-sm text-red-600 dark:text-red-400">
+      <div className="text-sm text-[var(--color-error)]">
         Error: {state.message}
       </div>
     );
@@ -59,11 +57,8 @@ export function Dashboard() {
         title="No profile yet"
         description="Pick a handle, add a display name, and start receiving USDC tips in seconds."
         action={
-          <Link
-            href="/create"
-            className="inline-block px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded font-medium hover:opacity-90"
-          >
-            Create profile
+          <Link href="/create">
+            <Button variant="primary">Create profile</Button>
           </Link>
         }
       />
@@ -79,6 +74,7 @@ export function Dashboard() {
         creator={creator}
         onSave={async (updates) => updateProfile(creator.slug, updates)}
       />
+      <WalletBalances />
     </div>
   );
 }

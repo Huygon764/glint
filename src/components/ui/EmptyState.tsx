@@ -29,16 +29,16 @@ export function EmptyState({
 }: Props) {
   return (
     <div
-      className={`border border-gray-300 dark:border-gray-700 rounded p-8 text-center space-y-3 ${className}`}
+      className={`bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-10 text-center space-y-4 ${className}`}
     >
       {icon && (
-        <div className="flex justify-center text-gray-400 dark:text-gray-600">
+        <div className="flex justify-center text-[var(--color-ink-muted)]">
           {icon}
         </div>
       )}
-      <h3 className="font-semibold text-sm">{title}</h3>
+      <h3 className="font-display text-xl text-[var(--color-ink)]">{title}</h3>
       {description && (
-        <p className="text-xs text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+        <p className="text-sm text-[var(--color-ink-soft)] max-w-sm mx-auto">
           {description}
         </p>
       )}
@@ -87,6 +87,25 @@ export function SparkleIcon() {
       <path d="M9.5 3 11 6l3 1.5L11 9l-1.5 3L8 9 5 7.5 8 6Z" />
       <path d="M17 12l1 2 2 1-2 1-1 2-1-2-2-1 2-1Z" />
       <path d="M17 3l.5 1 1 .5-1 .5L17 6l-.5-1-1-.5 1-.5Z" />
+    </svg>
+  );
+}
+
+/**
+ * 4-point sparkle — the glint logomark. Always pair with the wordmark.
+ * Can be used alone inside empty states / success confirmations.
+ */
+export function SparkleGlyph({ size = 32 }: { size?: number }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M12 1.5 13.7 8.5 20.5 12 13.7 15.5 12 22.5 10.3 15.5 3.5 12 10.3 8.5Z" />
     </svg>
   );
 }

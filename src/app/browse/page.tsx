@@ -2,17 +2,19 @@ import { BrowseCreators } from "@/components/creator/BrowseCreators";
 import { PageShell } from "@/components/layout/PageShell";
 
 export const metadata = {
-  title: "Browse creators · Glint",
+  title: "Browse creators · glint",
 };
 
 export default function BrowsePage() {
   return (
-    <PageShell maxWidth="3xl">
-      <h1 className="text-3xl font-bold mb-2">Browse creators</h1>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
-        Discover creators on Glint and send them a tip.
-      </p>
-
+    <PageShell maxWidth="5xl">
+      <div className="mb-10 max-w-2xl">
+        <h1 className="font-display text-5xl mb-3">Browse creators</h1>
+        <p className="text-[var(--color-ink-soft)]">
+          Discover folks on glint and send them a tip. Every creator here
+          receives USDC directly — no middlemen.
+        </p>
+      </div>
       <BrowseCreators />
     </PageShell>
   );

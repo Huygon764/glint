@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { EmptyState, UserIcon } from "@/components/ui/EmptyState";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { API_ENDPOINTS, ApiError, apiClient } from "@/lib/api";
-import type { Creator } from "@/lib/creators";
+import type { Creator } from "@/lib/creators/types";
 
 type State =
   | { kind: "loading" }
@@ -16,17 +19,12 @@ const SEARCH_DEBOUNCE_MS = 250;
 
 /**
  * Browse + search creators. Client component that hits /api/creators.
- *
- * - Typing in the search box debounces 250ms before refetching
- * - Loading state shows skeleton cards
- * - Empty state (no results) shows a friendly message
  */
 export function BrowseCreators() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [state, setState] = useState<State>({ kind: "loading" });
 
-  // Debounce search input
   useEffect(() => {
     const handle = setTimeout(
       () => setDebouncedSearch(search),
@@ -72,31 +70,33 @@ export function BrowseCreators() {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or handle..."
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-sm"
+          placeholder="Search by name or handle…"
+          className="w-full h-12 px-4 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
         />
       </div>
 
       {state.kind === "loading" && (
-        <ul className="grid sm:grid-cols-2 gap-4">
-          {[0, 1, 2, 3].map((i) => (
-            <li
-              key={i}
-              className="border border-gray-300 dark:border-gray-700 rounded p-4 space-y-3"
-            >
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-2/3" />
+        <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <li key={i}>
+              <Card>
+                <div className="flex items-center gap-3 mb-3">
+                  <Skeleton className="w-10 h-10 rounded-full" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                </div>
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-2/3 mt-1" />
+              </Card>
             </li>
           ))}
         </ul>
       )}
 
       {state.kind === "error" && (
-        <p className="text-sm text-red-600 dark:text-red-400">
-          {state.message}
-        </p>
+        <p className="text-sm text-[var(--color-error)]">{state.message}</p>
       )}
 
       {state.kind === "loaded" && state.creators.length === 0 && (
@@ -114,11 +114,8 @@ export function BrowseCreators() {
           }
           action={
             !debouncedSearch && (
-              <Link
-                href="/create"
-                className="inline-block px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded font-medium hover:opacity-90"
-              >
-                Create profile
+              <Link href="/create">
+                <Button variant="primary">Create profile</Button>
               </Link>
             )
           }
@@ -127,38 +124,39 @@ export function BrowseCreators() {
 
       {state.kind === "loaded" && state.creators.length > 0 && (
         <>
-          <p className="text-xs text-gray-500">
+          <p className="text-sm text-[var(--color-ink-soft)]">
             {state.total} creator{state.total === 1 ? "" : "s"}
             {debouncedSearch ? ` matching "${debouncedSearch}"` : ""}
           </p>
-          <ul className="grid sm:grid-cols-2 gap-4">
+          <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {state.creators.map((creator) => (
               <li key={creator.slug}>
-                <Link
-                  href={`/${creator.slug}`}
-                  className="block border border-gray-300 dark:border-gray-700 rounded p-4 space-y-2 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                >
-                  <div>
-                    <h3 className="font-semibold text-base">
-                      {creator.displayName}
-                    </h3>
-                    <p className="text-xs text-gray-500 font-mono">
-                      @{creator.slug}
+                <Link href={`/${creator.slug}`} className="block h-full">
+                  <Card className="h-full hover:border-[var(--color-border-strong)] transition-colors">
+                    <div className="flex items-center gap-3 mb-3">
+                      <InitialAvatar name={creator.displayName} />
+                      <div className="min-w-0">
+                        <div className="font-display text-lg leading-tight truncate">
+                          {creator.displayName}
+                        </div>
+                        <div className="text-xs font-mono text-[var(--color-ink-muted)] truncate">
+                          @{creator.slug}
+                        </div>
+                      </div>
+                    </div>
+                    {creator.bio && (
+                      <p className="text-sm text-[var(--color-ink-soft)] line-clamp-2 mb-3">
+                        {creator.bio}
+                      </p>
+                    )}
+                    <p className="text-xs text-[var(--color-ink-muted)]">
+                      Joined{" "}
+                      {new Date(creator.createdAt).toLocaleDateString(
+                        undefined,
+                        { year: "numeric", month: "short", day: "numeric" },
+                      )}
                     </p>
-                  </div>
-                  {creator.bio && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {creator.bio}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500">
-                    Joined{" "}
-                    {new Date(creator.createdAt).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
+                  </Card>
                 </Link>
               </li>
             ))}

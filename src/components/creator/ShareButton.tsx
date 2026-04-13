@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/Button";
 
 type Props = {
   slug: string;
@@ -9,7 +10,6 @@ type Props = {
 
 /**
  * Copy the creator's tipping link to the clipboard and show a toast.
- * Also provides quick-share links for Twitter/X and Telegram.
  */
 export function ShareButton({ slug }: Props) {
   const [copied, setCopied] = useState(false);
@@ -28,25 +28,19 @@ export function ShareButton({ slug }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={handleCopy}
-        className="flex items-center gap-2 px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-900"
-      >
-        {copied ? (
-          <>
-            <CheckIcon />
-            Copied
-          </>
-        ) : (
-          <>
-            <LinkIcon />
-            Copy link
-          </>
-        )}
-      </button>
-    </div>
+    <Button variant="secondary" size="md" onClick={handleCopy} type="button">
+      {copied ? (
+        <>
+          <CheckIcon />
+          Copied
+        </>
+      ) : (
+        <>
+          <LinkIcon />
+          Share
+        </>
+      )}
+    </Button>
   );
 }
 

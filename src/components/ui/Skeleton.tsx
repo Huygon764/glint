@@ -13,7 +13,7 @@ export function Skeleton({ className = "", ...rest }: Props) {
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse bg-gray-200 dark:bg-gray-800 rounded ${className}`}
+      className={`animate-pulse bg-[var(--color-surface-sunken)] rounded ${className}`}
       {...rest}
     />
   );

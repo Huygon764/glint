@@ -3,6 +3,7 @@ import { ShareButton } from "@/components/creator/ShareButton";
 import { TipForm } from "@/components/creator/TipForm";
 import { TipWall } from "@/components/creator/TipWall";
 import { PageShell } from "@/components/layout/PageShell";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { getCreatorsStore, validateSlug } from "@/lib/creators";
 import { shortenAddress } from "@/lib/stellar";
 
@@ -14,47 +15,51 @@ export default async function CreatorPage({
   const { slug } = await params;
 
   const slugResult = validateSlug(slug);
-  if (!slugResult.ok) {
-    notFound();
-  }
+  if (!slugResult.ok) notFound();
 
-  const store = getCreatorsStore();
-  const creator = await store.get(slugResult.slug);
-
-  if (!creator) {
-    notFound();
-  }
+  const creator = await getCreatorsStore().get(slugResult.slug);
+  if (!creator) notFound();
 
   return (
-    <PageShell>
-      <section className="space-y-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl font-bold">{creator.displayName}</h1>
-            <p className="text-sm text-gray-500 font-mono">@{creator.slug}</p>
+    <PageShell maxWidth="6xl">
+      {/* Profile header */}
+      <section className="mb-10">
+        <div className="flex items-start gap-6 flex-wrap">
+          <InitialAvatar name={creator.displayName} size="xl" />
+          <div className="flex-1 min-w-0 space-y-2">
+            <h1 className="font-display text-5xl leading-none">
+              {creator.displayName}
+            </h1>
+            <div className="text-sm text-[var(--color-ink-muted)] flex items-center gap-2 flex-wrap">
+              <span className="font-mono">@{creator.slug}</span>
+              <span>·</span>
+              <span>
+                Joined{" "}
+                {new Date(creator.createdAt).toLocaleDateString(undefined, {
+                  year: "numeric",
+                  month: "short",
+                })}
+              </span>
+              <span>·</span>
+              <span className="font-mono">
+                {shortenAddress(creator.walletAddress, 4, 4)}
+              </span>
+            </div>
+            {creator.bio && (
+              <p className="text-[var(--color-ink-soft)] max-w-xl pt-2 whitespace-pre-wrap">
+                {creator.bio}
+              </p>
+            )}
           </div>
           <ShareButton slug={creator.slug} />
         </div>
-
-        {creator.bio && (
-          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-            {creator.bio}
-          </p>
-        )}
-
-        <TipForm slug={creator.slug} displayName={creator.displayName} />
-
-        <TipWall slug={creator.slug} />
       </section>
 
-      <footer className="mt-16 pt-6 border-t border-gray-200 dark:border-gray-800">
-        <p className="text-xs text-gray-500">
-          Joined {new Date(creator.createdAt).toLocaleDateString()} ·{" "}
-          <span className="font-mono">
-            {shortenAddress(creator.walletAddress, 6, 6)}
-          </span>
-        </p>
-      </footer>
+      {/* Two-column: tip form (left) + tipping wall (right) */}
+      <section className="grid lg:grid-cols-[1.1fr_1fr] gap-6">
+        <TipForm slug={creator.slug} displayName={creator.displayName} />
+        <TipWall slug={creator.slug} />
+      </section>
     </PageShell>
   );
 }

@@ -1,23 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { AutoReconnect } from "@/components/wallet/AutoReconnect";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
+  display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Glint — Tipping on Stellar",
+  title: "glint — Tip creators in USDC on Stellar",
   description:
-    "Micropayment tipping dApp on Stellar. Zero platform fees, instant settlement.",
+    "The Internet's thank-you note. Send USDC micro-tips to creators on Stellar in ~5 seconds. Zero platform fee, every tip recorded on-chain.",
 };
 
 export default function RootLayout({
@@ -28,12 +37,23 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-[var(--color-bg)] text-[var(--color-ink)]">
         <AutoReconnect />
         {children}
-        <Toaster position="top-right" richColors closeButton />
+        <Toaster
+          position="bottom-right"
+          closeButton
+          toastOptions={{
+            style: {
+              background: "var(--color-surface)",
+              color: "var(--color-ink)",
+              border: "1px solid var(--color-border)",
+              fontFamily: "var(--font-inter)",
+            },
+          }}
+        />
       </body>
     </html>
   );
