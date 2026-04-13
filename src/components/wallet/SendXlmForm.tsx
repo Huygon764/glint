@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { type FormStatus, isBusy } from "@/lib/form-status";
 import { signTxWithFreighter } from "@/lib/freighter";
 import { buildXlmPaymentTx, submitSignedTx } from "@/lib/stellar";
@@ -43,12 +44,12 @@ export function SendXlmForm() {
       const hash = await submitSignedTx(signResult.value);
 
       setStatus({ kind: "success", data: { hash } });
+      toast.success("XLM transfer confirmed");
       refreshBalances();
     } catch (err) {
-      setStatus({
-        kind: "error",
-        message: (err as Error).message ?? "Unknown error",
-      });
+      const errMsg = (err as Error).message ?? "Unknown error";
+      setStatus({ kind: "error", message: errMsg });
+      toast.error(errMsg);
     }
   }
 

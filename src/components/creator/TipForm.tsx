@@ -4,6 +4,8 @@ import { x402Client } from "@x402/core/client";
 import { wrapFetchWithPayment } from "@x402/fetch";
 import { ExactStellarScheme } from "@x402/stellar/exact/client";
 import { type FormEvent, useState } from "react";
+import { toast } from "sonner";
+import { EmptyState, WalletIcon } from "@/components/ui/EmptyState";
 import { type FormStatus, isBusy } from "@/lib/form-status";
 import { createFreighterSigner } from "@/lib/freighter";
 import { useWalletStore } from "@/stores/wallet";
@@ -27,12 +29,11 @@ export function TipForm({ slug, displayName }: Props) {
 
   if (!address) {
     return (
-      <div className="border border-gray-300 dark:border-gray-700 rounded p-6 text-center space-y-3">
-        <p className="text-sm">Connect your wallet to send a tip.</p>
-        <p className="text-xs text-gray-500">
-          Uses Freighter + USDC on Stellar Testnet.
-        </p>
-      </div>
+      <EmptyState
+        icon={<WalletIcon />}
+        title="Connect your wallet to tip"
+        description="Tips are sent in USDC on Stellar Testnet via the x402 payment protocol. You'll need Freighter + a USDC trustline."
+      />
     );
   }
 
@@ -95,20 +96,19 @@ export function TipForm({ slug, displayName }: Props) {
       const text = await response.text();
 
       if (!response.ok) {
-        setStatus({
-          kind: "error",
-          message: `Tip failed (${response.status}): ${text}`,
-        });
+        const errMsg = `Tip failed (${response.status})`;
+        setStatus({ kind: "error", message: errMsg });
+        toast.error(errMsg);
         return;
       }
 
       setStatus({ kind: "success", data: text });
+      toast.success(`Sent $${finalAmount} USDC to ${displayName}`);
       refreshBalances();
     } catch (err) {
-      setStatus({
-        kind: "error",
-        message: (err as Error).message ?? "Unknown error",
-      });
+      const errMsg = (err as Error).message ?? "Unknown error";
+      setStatus({ kind: "error", message: errMsg });
+      toast.error(errMsg);
     }
   }
 

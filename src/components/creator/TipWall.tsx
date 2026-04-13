@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { EmptyState, SparkleIcon } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { shortenAddress, stroopsToUsdc } from "@/lib/stellar";
 
 type WallMessage = {
@@ -77,6 +79,14 @@ export function TipWall({ slug }: Props) {
         </button>
       </div>
 
+      {state.kind === "loading" && (
+        <div className="space-y-3">
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+        </div>
+      )}
+
       {state.kind === "error" && (
         <p className="text-xs text-red-600 dark:text-red-400">
           {state.message}
@@ -84,9 +94,12 @@ export function TipWall({ slug }: Props) {
       )}
 
       {state.kind === "loaded" && state.messages.length === 0 && (
-        <p className="text-xs text-gray-500">
-          No tips yet. Be the first to send one.
-        </p>
+        <EmptyState
+          icon={<SparkleIcon />}
+          title="No tips yet"
+          description="Be the first to send one. Tips and messages are stored on-chain."
+          className="border-none p-4"
+        />
       )}
 
       {state.kind === "loaded" && state.messages.length > 0 && (

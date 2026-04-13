@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
+import { toast } from "sonner";
+import { EmptyState, WalletIcon } from "@/components/ui/EmptyState";
 import type { Creator } from "@/lib/creators";
 import { type FormStatus, isBusy } from "@/lib/form-status";
 import { shortenAddress } from "@/lib/stellar";
@@ -19,11 +21,11 @@ export function CreateProfileForm() {
 
   if (!address) {
     return (
-      <div className="border border-gray-300 dark:border-gray-700 rounded p-6 text-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Connect your Freighter wallet to create a profile.
-        </p>
-      </div>
+      <EmptyState
+        icon={<WalletIcon />}
+        title="Connect your wallet"
+        description="Connect Freighter to pick a handle and start receiving tips. Your wallet address is your identity."
+      />
     );
   }
 
@@ -47,22 +49,21 @@ export function CreateProfileForm() {
 
       const data = await response.json();
       if (!response.ok) {
-        setStatus({
-          kind: "error",
-          message: data.error ?? `Request failed (${response.status})`,
-        });
+        const errMsg = data.error ?? `Request failed (${response.status})`;
+        setStatus({ kind: "error", message: errMsg });
+        toast.error(errMsg);
         return;
       }
 
       setStatus({ kind: "success", data });
+      toast.success(`Profile @${data.slug} created`);
       setTimeout(() => {
         router.push(`/${data.slug}`);
       }, 1500);
     } catch (err) {
-      setStatus({
-        kind: "error",
-        message: (err as Error).message ?? "Network error",
-      });
+      const errMsg = (err as Error).message ?? "Network error";
+      setStatus({ kind: "error", message: errMsg });
+      toast.error(errMsg);
     }
   }
 

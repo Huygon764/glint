@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useWalletStore } from "@/stores/wallet";
 
 export function WalletBalances() {
@@ -28,12 +29,18 @@ export function WalletBalances() {
 
       <div className="flex justify-between items-baseline">
         <span className="text-sm text-gray-600 dark:text-gray-400">XLM</span>
-        <span className="font-mono text-sm">{xlmBalance ?? "—"}</span>
+        {xlmBalance === null && isLoadingBalances ? (
+          <Skeleton className="h-4 w-20" />
+        ) : (
+          <span className="font-mono text-sm">{xlmBalance ?? "—"}</span>
+        )}
       </div>
 
       <div className="flex justify-between items-baseline">
         <span className="text-sm text-gray-600 dark:text-gray-400">USDC</span>
-        {hasUsdcTrustline ? (
+        {usdcBalance === null && isLoadingBalances ? (
+          <Skeleton className="h-4 w-20" />
+        ) : hasUsdcTrustline ? (
           <span className="font-mono text-sm">{usdcBalance ?? "0"}</span>
         ) : (
           <span className="text-xs text-amber-600 dark:text-amber-400">

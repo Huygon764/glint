@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { EmptyState, UserIcon, WalletIcon } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useWalletStore } from "@/stores/wallet";
 import { EditProfileForm } from "./EditProfileForm";
 import { TippingLinkCard } from "./TippingLinkCard";
@@ -17,16 +19,29 @@ export function Dashboard() {
 
   if (!address) {
     return (
-      <div className="border border-gray-300 dark:border-gray-700 rounded p-6 text-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Connect your wallet to see your dashboard.
-        </p>
-      </div>
+      <EmptyState
+        icon={<WalletIcon />}
+        title="Wallet not connected"
+        description="Connect your Freighter wallet to see your dashboard, tipping link, and edit your profile."
+      />
     );
   }
 
   if (state.kind === "idle" || state.kind === "loading") {
-    return <div className="text-sm text-gray-500">Loading...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="border border-gray-300 dark:border-gray-700 rounded p-6 space-y-4">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="border border-gray-300 dark:border-gray-700 rounded p-6 space-y-4">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+      </div>
+    );
   }
 
   if (state.kind === "error") {
@@ -39,17 +54,19 @@ export function Dashboard() {
 
   if (state.kind === "no-profile") {
     return (
-      <div className="border border-gray-300 dark:border-gray-700 rounded p-6 space-y-4">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          You don't have a profile yet.
-        </p>
-        <Link
-          href="/create"
-          className="inline-block px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded font-medium hover:opacity-90"
-        >
-          Create profile
-        </Link>
-      </div>
+      <EmptyState
+        icon={<UserIcon />}
+        title="No profile yet"
+        description="Pick a handle, add a display name, and start receiving USDC tips in seconds."
+        action={
+          <Link
+            href="/create"
+            className="inline-block px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded font-medium hover:opacity-90"
+          >
+            Create profile
+          </Link>
+        }
+      />
     );
   }
 

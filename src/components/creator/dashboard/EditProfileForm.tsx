@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import { toast } from "sonner";
 import type { Creator } from "@/lib/creators";
 import { type FormStatus, isBusy } from "@/lib/form-status";
 
@@ -30,9 +31,11 @@ export function EditProfileForm({ creator, onSave }: Props) {
     const result = await onSave({ displayName, bio });
     if (result.ok) {
       setStatus({ kind: "success", data: undefined });
+      toast.success("Profile updated");
       setTimeout(() => setStatus({ kind: "idle" }), 2000);
     } else {
       setStatus({ kind: "error", message: result.error });
+      toast.error(result.error);
     }
   }
 

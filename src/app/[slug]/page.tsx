@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ShareButton } from "@/components/creator/ShareButton";
 import { TipForm } from "@/components/creator/TipForm";
 import { TipWall } from "@/components/creator/TipWall";
 import { PageShell } from "@/components/layout/PageShell";
@@ -27,9 +28,12 @@ export default async function CreatorPage({
   return (
     <PageShell>
       <section className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold">{creator.displayName}</h1>
-          <p className="text-sm text-gray-500 font-mono">@{creator.slug}</p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-bold">{creator.displayName}</h1>
+            <p className="text-sm text-gray-500 font-mono">@{creator.slug}</p>
+          </div>
+          <ShareButton slug={creator.slug} />
         </div>
 
         {creator.bio && (
