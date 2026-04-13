@@ -1,4 +1,4 @@
-import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { PageShell } from "@/components/layout/PageShell";
 import { SendXlmForm } from "@/components/wallet/SendXlmForm";
 import { WalletBalances } from "@/components/wallet/WalletBalances";
 
@@ -8,16 +8,11 @@ import { WalletBalances } from "@/components/wallet/WalletBalances";
  */
 export default function TestPage() {
   return (
-    <main className="min-h-screen p-8 max-w-3xl mx-auto">
-      <header className="flex items-center justify-between mb-10">
-        <div>
-          <h1 className="text-2xl font-bold">Glint / Test</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Stellar wallet test page (Phase 1)
-          </p>
-        </div>
-        <ConnectButton />
-      </header>
+    <PageShell maxWidth="3xl" padding="p-8">
+      <h1 className="text-2xl font-bold mb-1">Glint / Test</h1>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
+        Stellar wallet test page (Phase 1)
+      </p>
 
       <div className="space-y-6">
         <WalletBalances />
@@ -47,6 +42,6 @@ export default function TestPage() {
           .
         </p>
       </footer>
-    </main>
+    </PageShell>
   );
 }

@@ -2,15 +2,10 @@
 
 import { type FormEvent, useState } from "react";
 import type { Creator } from "@/lib/creators";
+import { type FormStatus, isBusy } from "@/lib/form-status";
 
 const DISPLAY_NAME_MAX = 50;
 const BIO_MAX = 280;
-
-type SaveStatus =
-  | { kind: "idle" }
-  | { kind: "saving" }
-  | { kind: "saved" }
-  | { kind: "error"; message: string };
 
 type Props = {
   creator: Creator;
@@ -27,21 +22,21 @@ type Props = {
 export function EditProfileForm({ creator, onSave }: Props) {
   const [displayName, setDisplayName] = useState(creator.displayName);
   const [bio, setBio] = useState(creator.bio ?? "");
-  const [status, setStatus] = useState<SaveStatus>({ kind: "idle" });
+  const [status, setStatus] = useState<FormStatus>({ kind: "idle" });
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setStatus({ kind: "saving" });
+    setStatus({ kind: "busy", label: "Saving..." });
     const result = await onSave({ displayName, bio });
     if (result.ok) {
-      setStatus({ kind: "saved" });
+      setStatus({ kind: "success", data: undefined });
       setTimeout(() => setStatus({ kind: "idle" }), 2000);
     } else {
       setStatus({ kind: "error", message: result.error });
     }
   }
 
-  const isSaving = status.kind === "saving";
+  const saving = isBusy(status);
 
   return (
     <form
@@ -85,12 +80,12 @@ export function EditProfileForm({ creator, onSave }: Props) {
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={isSaving}
+          disabled={saving}
           className="px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded hover:opacity-90 disabled:opacity-50 font-medium"
         >
-          {isSaving ? "Saving..." : "Save changes"}
+          {status.kind === "busy" ? status.label : "Save changes"}
         </button>
-        {status.kind === "saved" && (
+        {status.kind === "success" && (
           <span className="text-sm text-green-600 dark:text-green-400">
             Saved
           </span>

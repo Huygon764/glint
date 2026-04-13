@@ -1,17 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { type FormStatus, isBusy } from "@/lib/form-status";
 import { signTxWithFreighter } from "@/lib/freighter";
 import { buildXlmPaymentTx, submitSignedTx } from "@/lib/stellar";
 import { useWalletStore } from "@/stores/wallet";
-
-type Status =
-  | { kind: "idle" }
-  | { kind: "building" }
-  | { kind: "signing" }
-  | { kind: "submitting" }
-  | { kind: "success"; hash: string }
-  | { kind: "error"; message: string };
 
 export function SendXlmForm() {
   const address = useWalletStore((s) => s.address);
@@ -19,38 +12,37 @@ export function SendXlmForm() {
 
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("1");
-  const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [status, setStatus] = useState<FormStatus<{ hash: string }>>({
+    kind: "idle",
+  });
 
   if (!address) return null;
 
-  const isBusy =
-    status.kind === "building" ||
-    status.kind === "signing" ||
-    status.kind === "submitting";
+  const busy = isBusy(status);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!address) return;
 
     try {
-      setStatus({ kind: "building" });
+      setStatus({ kind: "busy", label: "Building..." });
       const unsignedXdr = await buildXlmPaymentTx(
         address,
         destination.trim(),
         amount,
       );
 
-      setStatus({ kind: "signing" });
+      setStatus({ kind: "busy", label: "Waiting for Freighter..." });
       const signResult = await signTxWithFreighter(unsignedXdr, address);
       if (!signResult.ok) {
         setStatus({ kind: "error", message: signResult.error });
         return;
       }
 
-      setStatus({ kind: "submitting" });
+      setStatus({ kind: "busy", label: "Submitting to network..." });
       const hash = await submitSignedTx(signResult.value);
 
-      setStatus({ kind: "success", hash });
+      setStatus({ kind: "success", data: { hash } });
       refreshBalances();
     } catch (err) {
       setStatus({
@@ -109,28 +101,22 @@ export function SendXlmForm() {
 
       <button
         type="submit"
-        disabled={isBusy || !destination}
+        disabled={busy || !destination}
         className="w-full px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded hover:opacity-90 disabled:opacity-50 text-sm font-medium"
       >
-        {status.kind === "building" && "Building..."}
-        {status.kind === "signing" && "Waiting for Freighter..."}
-        {status.kind === "submitting" && "Submitting to network..."}
-        {(status.kind === "idle" ||
-          status.kind === "success" ||
-          status.kind === "error") &&
-          "Send"}
+        {status.kind === "busy" ? status.label : "Send"}
       </button>
 
       {status.kind === "success" && (
         <div className="text-xs text-green-700 dark:text-green-400 break-all">
           <div>Success!</div>
           <a
-            href={`https://stellar.expert/explorer/testnet/tx/${status.hash}`}
+            href={`https://stellar.expert/explorer/testnet/tx/${status.data.hash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="underline"
           >
-            {status.hash}
+            {status.data.hash}
           </a>
         </div>
       )}

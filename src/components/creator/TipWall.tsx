@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { stroopsToUsdc } from "@/lib/stellar";
+import { shortenAddress, stroopsToUsdc } from "@/lib/stellar";
 
 type WallMessage = {
   from: string;
@@ -110,7 +110,7 @@ export function TipWall({ slug }: Props) {
                 <div className="text-xs text-gray-500 flex items-center justify-between gap-2">
                   <span>
                     <span className="font-mono">
-                      {msg.from.slice(0, 4)}...{msg.from.slice(-4)}
+                      {shortenAddress(msg.from)}
                     </span>{" "}
                     tipped{" "}
                     <span className="text-gray-700 dark:text-gray-300">

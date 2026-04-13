@@ -1,18 +1,11 @@
 import Link from "next/link";
-import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { PageShell } from "@/components/layout/PageShell";
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col">
-      <header className="flex items-center justify-between p-6 max-w-5xl mx-auto w-full">
-        <Link href="/" className="text-xl font-bold">
-          Glint
-        </Link>
-        <ConnectButton />
-      </header>
-
+    <PageShell maxWidth="5xl">
       <section className="flex-1 flex items-center justify-center px-6">
-        <div className="max-w-2xl text-center space-y-8">
+        <div className="max-w-2xl text-center space-y-8 mx-auto">
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
             Micropayment tipping on Stellar
           </h1>
@@ -37,9 +30,9 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="p-6 max-w-5xl mx-auto w-full text-center text-xs text-gray-500">
+      <footer className="p-6 text-center text-xs text-gray-500">
         Built on Stellar Testnet · x402 payment protocol
       </footer>
-    </main>
+    </PageShell>
   );
 }

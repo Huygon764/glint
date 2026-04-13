@@ -22,6 +22,26 @@ export function isValidStellarAddress(address: unknown): address is string {
 }
 
 /**
+ * Shorten a Stellar address for display: keep `prefix` characters at the
+ * start, `suffix` characters at the end, and replace the middle with `...`.
+ *
+ * Returns the original string unchanged if it's too short to shorten.
+ *
+ * @example
+ *   shortenAddress("GABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")  // "GABC...7890"
+ *   shortenAddress("GABCDE...", 6, 6)                        // "GABCDE...890"
+ */
+export function shortenAddress(
+  address: string | null | undefined,
+  prefix = 4,
+  suffix = 4,
+): string {
+  if (!address) return "";
+  if (address.length <= prefix + suffix + 3) return address;
+  return `${address.slice(0, prefix)}...${address.slice(-suffix)}`;
+}
+
+/**
  * Stellar network configuration for Glint.
  * Currently testnet-only. Can be made configurable in a later phase.
  */

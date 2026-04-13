@@ -4,13 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import type { Creator } from "@/lib/creators";
+import { type FormStatus, isBusy } from "@/lib/form-status";
+import { shortenAddress } from "@/lib/stellar";
 import { useWalletStore } from "@/stores/wallet";
-
-type Status =
-  | { kind: "idle" }
-  | { kind: "submitting" }
-  | { kind: "success"; creator: Creator }
-  | { kind: "error"; message: string };
 
 export function CreateProfileForm() {
   const router = useRouter();
@@ -19,7 +15,7 @@ export function CreateProfileForm() {
   const [slug, setSlug] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [status, setStatus] = useState<FormStatus<Creator>>({ kind: "idle" });
 
   if (!address) {
     return (
@@ -35,7 +31,7 @@ export function CreateProfileForm() {
     e.preventDefault();
     if (!address) return;
 
-    setStatus({ kind: "submitting" });
+    setStatus({ kind: "busy", label: "Creating..." });
 
     try {
       const response = await fetch("/api/creators", {
@@ -58,7 +54,7 @@ export function CreateProfileForm() {
         return;
       }
 
-      setStatus({ kind: "success", creator: data });
+      setStatus({ kind: "success", data });
       setTimeout(() => {
         router.push(`/${data.slug}`);
       }, 1500);
@@ -76,11 +72,8 @@ export function CreateProfileForm() {
         <h2 className="font-semibold">Profile created</h2>
         <p className="text-sm">
           Your tipping link:{" "}
-          <Link
-            href={`/${status.creator.slug}`}
-            className="font-mono underline"
-          >
-            /{status.creator.slug}
+          <Link href={`/${status.data.slug}`} className="font-mono underline">
+            /{status.data.slug}
           </Link>
         </p>
         <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -90,7 +83,7 @@ export function CreateProfileForm() {
     );
   }
 
-  const isSubmitting = status.kind === "submitting";
+  const isSubmitting = isBusy(status);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -155,16 +148,14 @@ export function CreateProfileForm() {
       <div className="pt-2">
         <div className="text-xs text-gray-500 mb-3">
           Wallet:{" "}
-          <span className="font-mono">
-            {address.slice(0, 6)}...{address.slice(-6)}
-          </span>
+          <span className="font-mono">{shortenAddress(address, 6, 6)}</span>
         </div>
         <button
           type="submit"
           disabled={isSubmitting}
           className="w-full px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded hover:opacity-90 disabled:opacity-50 font-medium"
         >
-          {isSubmitting ? "Creating..." : "Create profile"}
+          {status.kind === "busy" ? status.label : "Create profile"}
         </button>
       </div>
 

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TipForm } from "@/components/creator/TipForm";
 import { TipWall } from "@/components/creator/TipWall";
-import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { PageShell } from "@/components/layout/PageShell";
 import { getCreatorsStore, validateSlug } from "@/lib/creators";
+import { shortenAddress } from "@/lib/stellar";
 
 export default async function CreatorPage({
   params,
@@ -25,14 +25,7 @@ export default async function CreatorPage({
   }
 
   return (
-    <main className="min-h-screen p-6 max-w-2xl mx-auto">
-      <header className="flex items-center justify-between mb-10">
-        <Link href="/" className="text-xl font-bold">
-          Glint
-        </Link>
-        <ConnectButton />
-      </header>
-
+    <PageShell>
       <section className="space-y-8">
         <div>
           <h1 className="text-3xl font-bold">{creator.displayName}</h1>
@@ -54,11 +47,10 @@ export default async function CreatorPage({
         <p className="text-xs text-gray-500">
           Joined {new Date(creator.createdAt).toLocaleDateString()} ·{" "}
           <span className="font-mono">
-            {creator.walletAddress.slice(0, 6)}...
-            {creator.walletAddress.slice(-6)}
+            {shortenAddress(creator.walletAddress, 6, 6)}
           </span>
         </p>
       </footer>
-    </main>
+    </PageShell>
   );
 }

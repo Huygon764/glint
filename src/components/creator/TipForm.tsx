@@ -4,17 +4,11 @@ import { x402Client } from "@x402/core/client";
 import { wrapFetchWithPayment } from "@x402/fetch";
 import { ExactStellarScheme } from "@x402/stellar/exact/client";
 import { type FormEvent, useState } from "react";
+import { type FormStatus, isBusy } from "@/lib/form-status";
 import { createFreighterSigner } from "@/lib/freighter";
 import { useWalletStore } from "@/stores/wallet";
 
 const PRESET_AMOUNTS = ["0.10", "0.50", "1.00", "5.00"];
-
-type Status =
-  | { kind: "idle" }
-  | { kind: "signing" }
-  | { kind: "submitting" }
-  | { kind: "success"; responseBody: string }
-  | { kind: "error"; message: string };
 
 type Props = {
   slug: string;
@@ -29,7 +23,7 @@ export function TipForm({ slug, displayName }: Props) {
   const [selectedAmount, setSelectedAmount] = useState("0.50");
   const [customAmount, setCustomAmount] = useState("");
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [status, setStatus] = useState<FormStatus<string>>({ kind: "idle" });
 
   if (!address) {
     return (
@@ -64,7 +58,7 @@ export function TipForm({ slug, displayName }: Props) {
   const finalAmount =
     customAmount.trim() !== "" ? customAmount.trim() : selectedAmount;
 
-  const isBusy = status.kind === "signing" || status.kind === "submitting";
+  const busy = isBusy(status);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -77,7 +71,7 @@ export function TipForm({ slug, displayName }: Props) {
     }
 
     try {
-      setStatus({ kind: "signing" });
+      setStatus({ kind: "busy", label: "Waiting for Freighter..." });
 
       const signer = createFreighterSigner(address);
       const client = new x402Client().register(
@@ -86,7 +80,7 @@ export function TipForm({ slug, displayName }: Props) {
       );
       const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 
-      setStatus({ kind: "submitting" });
+      setStatus({ kind: "busy", label: "Processing payment..." });
 
       const url = `/api/tip/${encodeURIComponent(slug)}?amount=${encodeURIComponent(finalAmount)}`;
       const body = JSON.stringify({
@@ -108,7 +102,7 @@ export function TipForm({ slug, displayName }: Props) {
         return;
       }
 
-      setStatus({ kind: "success", responseBody: text });
+      setStatus({ kind: "success", data: text });
       refreshBalances();
     } catch (err) {
       setStatus({
@@ -141,7 +135,7 @@ export function TipForm({ slug, displayName }: Props) {
               <button
                 key={amt}
                 type="button"
-                disabled={isBusy}
+                disabled={busy}
                 onClick={() => {
                   setSelectedAmount(amt);
                   setCustomAmount("");
@@ -165,7 +159,7 @@ export function TipForm({ slug, displayName }: Props) {
           value={customAmount}
           onChange={(e) => setCustomAmount(e.target.value)}
           placeholder="Custom amount..."
-          disabled={isBusy}
+          disabled={busy}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 font-mono text-sm disabled:opacity-50"
         />
       </div>
@@ -184,7 +178,7 @@ export function TipForm({ slug, displayName }: Props) {
           placeholder="Leave a note on the tipping wall..."
           maxLength={280}
           rows={2}
-          disabled={isBusy}
+          disabled={busy}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-sm resize-none disabled:opacity-50"
         />
         <p className="text-xs text-gray-500 mt-1">{message.length}/280</p>
@@ -192,21 +186,16 @@ export function TipForm({ slug, displayName }: Props) {
 
       <button
         type="submit"
-        disabled={isBusy}
+        disabled={busy}
         className="w-full px-4 py-3 bg-black text-white dark:bg-white dark:text-black rounded hover:opacity-90 disabled:opacity-50 font-medium"
       >
-        {status.kind === "signing" && "Waiting for Freighter..."}
-        {status.kind === "submitting" && "Processing payment..."}
-        {(status.kind === "idle" ||
-          status.kind === "success" ||
-          status.kind === "error") &&
-          `Tip $${finalAmount} USDC`}
+        {status.kind === "busy" ? status.label : `Tip $${finalAmount} USDC`}
       </button>
 
       {status.kind === "success" && (
         <div className="text-xs text-green-700 dark:text-green-400 space-y-1">
           <div className="font-semibold">Tip sent 🎉</div>
-          <div className="font-mono break-all">{status.responseBody}</div>
+          <div className="font-mono break-all">{status.data}</div>
         </div>
       )}
 

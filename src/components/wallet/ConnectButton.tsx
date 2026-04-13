@@ -1,10 +1,7 @@
 "use client";
 
+import { shortenAddress } from "@/lib/stellar";
 import { useWalletStore } from "@/stores/wallet";
-
-function shortAddress(addr: string): string {
-  return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
-}
 
 export function ConnectButton() {
   const address = useWalletStore((s) => s.address);
@@ -17,7 +14,7 @@ export function ConnectButton() {
     return (
       <div className="flex items-center gap-3">
         <span className="font-mono text-sm bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded">
-          {shortAddress(address)}
+          {shortenAddress(address)}
         </span>
         <button
           type="button"
