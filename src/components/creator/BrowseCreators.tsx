@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { EmptyState, UserIcon } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { API_ENDPOINTS, ApiError, apiClient } from "@/lib/api";
 import type { Creator } from "@/lib/creators";
 
 type State =
@@ -37,26 +38,26 @@ export function BrowseCreators() {
   const fetchCreators = useCallback(async (q: string) => {
     setState({ kind: "loading" });
     try {
-      const params = new URLSearchParams();
-      if (q) params.set("search", q);
-      params.set("limit", "50");
-
-      const res = await fetch(`/api/creators?${params.toString()}`);
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? `HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      const { data } = await apiClient.get<{
+        creators: Creator[];
+        total: number;
+      }>(API_ENDPOINTS.CREATORS, {
+        params: {
+          ...(q ? { search: q } : {}),
+          limit: 50,
+        },
+      });
       setState({
         kind: "loaded",
         creators: data.creators ?? [],
         total: data.total ?? 0,
       });
     } catch (err) {
-      setState({
-        kind: "error",
-        message: (err as Error).message ?? "Failed to load creators",
-      });
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : ((err as Error).message ?? "Failed to load creators");
+      setState({ kind: "error", message });
     }
   }, []);
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState, WalletIcon } from "@/components/ui/EmptyState";
+import { API_ENDPOINTS, ApiError, apiClient } from "@/lib/api";
 import type { Creator } from "@/lib/creators";
 import { type FormStatus, isBusy } from "@/lib/form-status";
 import { shortenAddress } from "@/lib/stellar";
@@ -36,24 +37,12 @@ export function CreateProfileForm() {
     setStatus({ kind: "busy", label: "Creating..." });
 
     try {
-      const response = await fetch("/api/creators", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slug: slug.trim(),
-          walletAddress: address,
-          displayName: displayName.trim(),
-          bio: bio.trim() || undefined,
-        }),
+      const { data } = await apiClient.post<Creator>(API_ENDPOINTS.CREATORS, {
+        slug: slug.trim(),
+        walletAddress: address,
+        displayName: displayName.trim(),
+        bio: bio.trim() || undefined,
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        const errMsg = data.error ?? `Request failed (${response.status})`;
-        setStatus({ kind: "error", message: errMsg });
-        toast.error(errMsg);
-        return;
-      }
 
       setStatus({ kind: "success", data });
       toast.success(`Profile @${data.slug} created`);
@@ -61,7 +50,10 @@ export function CreateProfileForm() {
         router.push(`/${data.slug}`);
       }, 1500);
     } catch (err) {
-      const errMsg = (err as Error).message ?? "Network error";
+      const errMsg =
+        err instanceof ApiError
+          ? err.message
+          : ((err as Error).message ?? "Network error");
       setStatus({ kind: "error", message: errMsg });
       toast.error(errMsg);
     }

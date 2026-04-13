@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { API_ENDPOINTS, ApiError, apiClient } from "@/lib/api";
 import type { Creator } from "@/lib/creators";
 
 export type LoadState =
@@ -36,32 +37,24 @@ export function useCreatorProfile(walletAddress: string | null) {
 
     (async () => {
       try {
-        const res = await fetch(
-          `/api/creators/by-wallet?address=${encodeURIComponent(walletAddress)}`,
+        const { data: creator } = await apiClient.get<Creator>(
+          API_ENDPOINTS.CREATOR_BY_WALLET,
+          { params: { address: walletAddress } },
         );
         if (cancelled) return;
-
-        if (res.status === 404) {
-          setState({ kind: "no-profile" });
-          return;
-        }
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          setState({
-            kind: "error",
-            message: err.error ?? "Failed to load profile",
-          });
-          return;
-        }
-
-        const creator: Creator = await res.json();
         setState({ kind: "loaded", creator });
       } catch (err) {
         if (cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          setState({ kind: "no-profile" });
+          return;
+        }
         setState({
           kind: "error",
-          message: (err as Error).message ?? "Network error",
+          message:
+            err instanceof ApiError
+              ? err.message
+              : ((err as Error).message ?? "Network error"),
         });
       }
     })();
@@ -86,31 +79,23 @@ export function useCreatorProfile(walletAddress: string | null) {
         return { ok: false, error: "Wallet not connected" };
       }
       try {
-        const res = await fetch(`/api/creators/${slug}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const { data: creator } = await apiClient.patch<Creator>(
+          API_ENDPOINTS.creatorBySlug(slug),
+          {
             walletAddress,
             displayName: updates.displayName.trim(),
             bio: updates.bio?.trim() || undefined,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          return {
-            ok: false,
-            error: data.error ?? `Update failed (${res.status})`,
-          };
-        }
-
-        setState({ kind: "loaded", creator: data });
-        return { ok: true, creator: data };
+          },
+        );
+        setState({ kind: "loaded", creator });
+        return { ok: true, creator };
       } catch (err) {
         return {
           ok: false,
-          error: (err as Error).message ?? "Network error",
+          error:
+            err instanceof ApiError
+              ? err.message
+              : ((err as Error).message ?? "Network error"),
         };
       }
     },

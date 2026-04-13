@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { EmptyState, SparkleIcon } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { API_ENDPOINTS, ApiError, apiClient } from "@/lib/api";
 import { shortenAddress, stroopsToUsdc } from "@/lib/stellar";
 
 type WallMessage = {
@@ -33,12 +34,9 @@ export function TipWall({ slug }: Props) {
   const fetchMessages = useCallback(async () => {
     setState({ kind: "loading" });
     try {
-      const res = await fetch(`/api/tip-messages/${encodeURIComponent(slug)}`);
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? `HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      const { data } = await apiClient.get<{ messages: WallMessage[] }>(
+        API_ENDPOINTS.tipMessages(slug),
+      );
       const messages: WallMessage[] = data.messages ?? [];
       // Newest first
       messages.sort((a, b) =>
@@ -46,10 +44,11 @@ export function TipWall({ slug }: Props) {
       );
       setState({ kind: "loaded", messages });
     } catch (err) {
-      setState({
-        kind: "error",
-        message: (err as Error).message ?? "Failed to load wall",
-      });
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : ((err as Error).message ?? "Failed to load wall");
+      setState({ kind: "error", message });
     }
   }, [slug]);
 
