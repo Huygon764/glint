@@ -14,7 +14,6 @@ type WallMessage = {
 };
 
 type State =
-  | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "loaded"; messages: WallMessage[] }
   | { kind: "error"; message: string };
@@ -29,7 +28,7 @@ type Props = {
  * the contract state through Soroban RPC.
  */
 export function TipWall({ slug }: Props) {
-  const [state, setState] = useState<State>({ kind: "idle" });
+  const [state, setState] = useState<State>({ kind: "loading" });
 
   const fetchMessages = useCallback(async () => {
     setState({ kind: "loading" });

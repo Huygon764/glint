@@ -6,7 +6,7 @@ import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState, WalletIcon } from "@/components/ui/EmptyState";
 import { API_ENDPOINTS, ApiError, apiClient } from "@/lib/api";
-import type { Creator } from "@/lib/creators";
+import { BIO_MAX, type Creator, DISPLAY_NAME_MAX } from "@/lib/creators";
 import { type FormStatus, isBusy } from "@/lib/form-status";
 import { shortenAddress } from "@/lib/stellar";
 import { useWalletStore } from "@/stores/wallet";
@@ -115,7 +115,7 @@ export function CreateProfileForm() {
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Alice"
           required
-          maxLength={50}
+          maxLength={DISPLAY_NAME_MAX}
           disabled={isSubmitting}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-sm disabled:opacity-50"
         />
@@ -130,12 +130,14 @@ export function CreateProfileForm() {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder="What you do, why people should tip you..."
-          maxLength={280}
+          maxLength={BIO_MAX}
           rows={3}
           disabled={isSubmitting}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-sm disabled:opacity-50 resize-none"
         />
-        <p className="text-xs text-gray-500 mt-1">{bio.length}/280</p>
+        <p className="text-xs text-gray-500 mt-1">
+          {bio.length}/{BIO_MAX}
+        </p>
       </div>
 
       <div className="pt-2">

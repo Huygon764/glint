@@ -21,5 +21,7 @@ export function getCreatorsStore(): CreatorsStore {
   return _store;
 }
 
+export { BIO_MAX, DISPLAY_NAME_MAX } from "./limits";
 export { validateSlug } from "./slug";
 export * from "./types";
+export { validateBio, validateDisplayName } from "./validate-profile";

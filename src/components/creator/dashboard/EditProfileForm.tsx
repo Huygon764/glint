@@ -2,11 +2,8 @@
 
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import type { Creator } from "@/lib/creators";
+import { BIO_MAX, type Creator, DISPLAY_NAME_MAX } from "@/lib/creators";
 import { type FormStatus, isBusy } from "@/lib/form-status";
-
-const DISPLAY_NAME_MAX = 50;
-const BIO_MAX = 280;
 
 type Props = {
   creator: Creator;

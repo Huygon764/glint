@@ -7,6 +7,11 @@ import {
 } from "@x402/core/server";
 import { ExactStellarScheme } from "@x402/stellar/exact/server";
 import { getCreatorsStore } from "./creators";
+import {
+  DEFAULT_TIP_AMOUNT,
+  MAX_TIP_AMOUNT,
+  MIN_TIP_AMOUNT,
+} from "./tip-limits";
 
 /**
  * Environment configuration for x402 server.
@@ -18,11 +23,6 @@ const FACILITATOR_URL =
 const STELLAR_NETWORK =
   (process.env.X402_STELLAR_NETWORK as "stellar:testnet" | "stellar:pubnet") ??
   "stellar:testnet";
-
-// Tip amount limits (USDC)
-export const MIN_TIP_AMOUNT = 0.01;
-export const MAX_TIP_AMOUNT = 1000;
-export const DEFAULT_TIP_AMOUNT = "0.01";
 
 /**
  * Build the framework-agnostic x402 resource server.

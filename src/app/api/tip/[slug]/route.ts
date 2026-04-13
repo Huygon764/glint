@@ -3,10 +3,9 @@ import { badRequest, notFound, parseJsonBody } from "@/lib/api-helpers";
 import { getCreatorsStore, validateSlug } from "@/lib/creators";
 import { NextHTTPAdapter } from "@/lib/next-http-adapter";
 import { isValidStellarAddress, usdcToStroops } from "@/lib/stellar";
+import { DEFAULT_TIP_AMOUNT, TIP_MESSAGE_MAX } from "@/lib/tip-limits";
 import { recordTipMessage } from "@/lib/tipjar";
-import { DEFAULT_TIP_AMOUNT, getX402HttpServer } from "@/lib/x402-server";
-
-const MAX_MESSAGE_LEN = 280;
+import { getX402HttpServer } from "@/lib/x402-server";
 
 type TipBody = {
   message?: string;
@@ -50,8 +49,8 @@ export async function POST(
   const body = (await parseJsonBody<TipBody>(request)) ?? {};
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
-  if (message.length > MAX_MESSAGE_LEN) {
-    return badRequest(`Message must be ${MAX_MESSAGE_LEN} characters or less`);
+  if (message.length > TIP_MESSAGE_MAX) {
+    return badRequest(`Message must be ${TIP_MESSAGE_MAX} characters or less`);
   }
 
   // Validate optional from (tipper address)

@@ -8,13 +8,13 @@ import {
 import {
   getCreatorsStore,
   SlugTakenError,
+  validateBio,
+  validateDisplayName,
   validateSlug,
   WalletAlreadyHasProfileError,
 } from "@/lib/creators";
 import { isValidStellarAddress } from "@/lib/stellar";
 
-const DISPLAY_NAME_MAX = 50;
-const BIO_MAX = 280;
 const LIST_DEFAULT_LIMIT = 20;
 const LIST_MAX_LIMIT = 100;
 
@@ -77,33 +77,18 @@ export async function POST(request: Request) {
     return badRequest("Invalid Stellar wallet address");
   }
 
-  // Display name
-  const displayName =
-    typeof body.displayName === "string" ? body.displayName.trim() : "";
-  if (displayName.length === 0) {
-    return badRequest("Display name is required");
-  }
-  if (displayName.length > DISPLAY_NAME_MAX) {
-    return badRequest(
-      `Display name must be ${DISPLAY_NAME_MAX} characters or less`,
-    );
-  }
+  const nameResult = validateDisplayName(body.displayName, { required: true });
+  if (!nameResult.ok) return badRequest(nameResult.error);
 
-  // Bio (optional)
-  if (body.bio !== undefined && typeof body.bio !== "string") {
-    return badRequest("Bio must be a string");
-  }
-  const bio = body.bio?.trim();
-  if (bio !== undefined && bio.length > BIO_MAX) {
-    return badRequest(`Bio must be ${BIO_MAX} characters or less`);
-  }
+  const bioResult = validateBio(body.bio);
+  if (!bioResult.ok) return badRequest(bioResult.error);
 
   try {
     const creator = await getCreatorsStore().create({
       slug: slugResult.slug,
       walletAddress: body.walletAddress,
-      displayName,
-      bio: bio || undefined,
+      displayName: nameResult.value,
+      bio: bioResult.value,
     });
     return NextResponse.json(creator, { status: 201 });
   } catch (err) {

@@ -9,11 +9,10 @@ import {
 import {
   getCreatorsStore,
   NotProfileOwnerError,
+  validateBio,
+  validateDisplayName,
   validateSlug,
 } from "@/lib/creators";
-
-const DISPLAY_NAME_MAX = 50;
-const BIO_MAX = 280;
 
 type UpdateRequestBody = {
   walletAddress?: string;
@@ -63,40 +62,17 @@ export async function PATCH(
     return badRequest("walletAddress is required");
   }
 
-  // Display name (optional update)
-  let displayName: string | undefined;
-  if (body.displayName !== undefined) {
-    if (
-      typeof body.displayName !== "string" ||
-      body.displayName.trim().length === 0
-    ) {
-      return badRequest("Display name cannot be empty");
-    }
-    if (body.displayName.length > DISPLAY_NAME_MAX) {
-      return badRequest(
-        `Display name must be ${DISPLAY_NAME_MAX} characters or less`,
-      );
-    }
-    displayName = body.displayName.trim();
-  }
+  const nameResult = validateDisplayName(body.displayName, { required: false });
+  if (!nameResult.ok) return badRequest(nameResult.error);
 
-  // Bio (optional update)
-  let bio: string | undefined;
-  if (body.bio !== undefined) {
-    if (typeof body.bio !== "string") {
-      return badRequest("Bio must be a string");
-    }
-    if (body.bio.length > BIO_MAX) {
-      return badRequest(`Bio must be ${BIO_MAX} characters or less`);
-    }
-    bio = body.bio.trim() || undefined;
-  }
+  const bioResult = validateBio(body.bio);
+  if (!bioResult.ok) return badRequest(bioResult.error);
 
   try {
     const updated = await getCreatorsStore().update(
       slugResult.slug,
       body.walletAddress,
-      { displayName, bio },
+      { displayName: nameResult.value, bio: bioResult.value },
     );
     return NextResponse.json(updated);
   } catch (err) {

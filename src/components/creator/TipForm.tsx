@@ -8,6 +8,11 @@ import { toast } from "sonner";
 import { EmptyState, WalletIcon } from "@/components/ui/EmptyState";
 import { type FormStatus, isBusy } from "@/lib/form-status";
 import { createFreighterSigner } from "@/lib/freighter";
+import {
+  MAX_TIP_AMOUNT,
+  MIN_TIP_AMOUNT,
+  TIP_MESSAGE_MAX,
+} from "@/lib/tip-limits";
 import { useWalletStore } from "@/stores/wallet";
 
 const PRESET_AMOUNTS = ["0.10", "0.50", "1.00", "5.00"];
@@ -66,8 +71,15 @@ export function TipForm({ slug, displayName }: Props) {
     if (!address) return;
 
     const parsed = Number.parseFloat(finalAmount);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      setStatus({ kind: "error", message: "Enter a valid amount" });
+    if (
+      !Number.isFinite(parsed) ||
+      parsed < MIN_TIP_AMOUNT ||
+      parsed > MAX_TIP_AMOUNT
+    ) {
+      setStatus({
+        kind: "error",
+        message: `Amount must be between ${MIN_TIP_AMOUNT} and ${MAX_TIP_AMOUNT} USDC`,
+      });
       return;
     }
 
@@ -154,8 +166,8 @@ export function TipForm({ slug, displayName }: Props) {
         <input
           type="number"
           step="0.01"
-          min="0.01"
-          max="1000"
+          min={MIN_TIP_AMOUNT}
+          max={MAX_TIP_AMOUNT}
           value={customAmount}
           onChange={(e) => setCustomAmount(e.target.value)}
           placeholder="Custom amount..."
@@ -176,12 +188,14 @@ export function TipForm({ slug, displayName }: Props) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Leave a note on the tipping wall..."
-          maxLength={280}
+          maxLength={TIP_MESSAGE_MAX}
           rows={2}
           disabled={busy}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-sm resize-none disabled:opacity-50"
         />
-        <p className="text-xs text-gray-500 mt-1">{message.length}/280</p>
+        <p className="text-xs text-gray-500 mt-1">
+          {message.length}/{TIP_MESSAGE_MAX}
+        </p>
       </div>
 
       <button
