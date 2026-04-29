@@ -91,7 +91,7 @@ jobs:
             --platform=managed \
             --port=3000 \
             --service-account=${{ vars.GCP_SERVICE_ACCOUNT_NAME }}@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
-            --set-env-vars=STORE_TYPE=firestore,X402_STELLAR_NETWORK=stellar:testnet,TIPJAR_CONTRACT_ID=${{ vars.GCP_TIPJAR_CONTRACT_ID }},NEXT_TELEMETRY_DISABLED=1 \
+            --set-env-vars=STORE_TYPE=firestore,X402_STELLAR_NETWORK=stellar:testnet,TIPJAR_CONTRACT_ID=${{ vars.TIPJAR_CONTRACT_ID }},NEXT_TELEMETRY_DISABLED=1 \
             --set-secrets=TEST_MNEMONIC=TEST_MNEMONIC:latest \
             --allow-unauthenticated \
             --min-instances=0 \
