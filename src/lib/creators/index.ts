@@ -1,23 +1,29 @@
 import { resolve } from "node:path";
+import { FirestoreCreatorsStore } from "./firestore-store";
 import { JSONFileStore } from "./json-file-store";
 import type { CreatorsStore } from "./types";
 
 /**
  * Returns the active creators store singleton.
  *
- * Currently always returns a `JSONFileStore` pointing at `CREATORS_STORE_PATH`
- * (default `.data/creators.json`). In Phase 5 this will switch to a Firestore
- * implementation when `STORE_TYPE=firestore`.
+ * `STORE_TYPE=firestore` selects the Firestore backend (production on Cloud
+ * Run). Any other value (including unset) falls back to a local JSON file at
+ * `CREATORS_STORE_PATH` — fine for dev, unsafe on ephemeral serverless disks.
  */
 let _store: CreatorsStore | null = null;
 
 export function getCreatorsStore(): CreatorsStore {
-  if (!_store) {
+  if (_store) return _store;
+
+  if (process.env.STORE_TYPE === "firestore") {
+    _store = new FirestoreCreatorsStore();
+  } else {
     const storePath = resolve(
       process.env.CREATORS_STORE_PATH ?? ".data/creators.json",
     );
     _store = new JSONFileStore(storePath);
   }
+
   return _store;
 }
 
