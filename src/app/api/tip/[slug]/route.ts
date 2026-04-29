@@ -2,10 +2,18 @@ import type { HTTPRequestContext } from "@x402/core/server";
 import { badRequest, notFound, parseJsonBody } from "@/lib/api-helpers";
 import { getCreatorsStore, validateSlug } from "@/lib/creators";
 import { NextHTTPAdapter } from "@/lib/next-http-adapter";
+import { clientKeyFromRequest, rateLimit } from "@/lib/rate-limit";
 import { isValidStellarAddress, usdcToStroops } from "@/lib/stellar";
 import { DEFAULT_TIP_AMOUNT, TIP_MESSAGE_MAX } from "@/lib/tip-limits";
 import { recordTipMessage } from "@/lib/tipjar";
 import { getX402HttpServer } from "@/lib/x402-server";
+
+/**
+ * Abuse guard — per-IP sliding window. Cheap notes cost ~$0.01 but could
+ * still spam the tipping wall. Cloud Run has multiple instances so this is
+ * best-effort; move to a shared store (Firestore / Redis) if traffic grows.
+ */
+const TIP_RATE_LIMIT = { max: 5, windowMs: 60_000 };
 
 type TipBody = {
   message?: string;
@@ -41,6 +49,24 @@ export async function POST(
 
   const slugResult = validateSlug(slug);
   if (!slugResult.ok) return badRequest(slugResult.error);
+
+  const rateKey = `tip:${clientKeyFromRequest(request)}:${slugResult.slug}`;
+  const limit = rateLimit(rateKey, TIP_RATE_LIMIT);
+  if (!limit.allowed) {
+    return new Response(
+      JSON.stringify({
+        error: "Too many tips — try again shortly.",
+        retryAfterSec: limit.retryAfterSec,
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(limit.retryAfterSec),
+        },
+      },
+    );
+  }
 
   const creator = await getCreatorsStore().get(slugResult.slug);
   if (!creator) return notFound("Creator not found");
@@ -103,6 +129,7 @@ export async function POST(
   // but won't appear on the wall until the server recovers.
   let recordedOnChain: boolean | null = null;
   let recordError: string | null = null;
+  const settlementTxHash = settleResult.transaction;
 
   if (from) {
     // amount comes from query param `amount`; convert decimal USDC → stroops
@@ -116,6 +143,7 @@ export async function POST(
       creator.walletAddress,
       amountStroops,
       message, // empty string is fine — means "tip without a message"
+      settlementTxHash,
     );
 
     if (record.ok) {
@@ -133,6 +161,7 @@ export async function POST(
     recipient: creator.walletAddress,
     paidAt: new Date().toISOString(),
     recordedOnChain,
+    txHash: settlementTxHash,
     ...(recordError ? { recordError } : {}),
   };
 

@@ -3,8 +3,12 @@
 use super::*;
 use soroban_sdk::{
     testutils::Address as _,
-    Address, Env, String,
+    Address, BytesN, Env, String,
 };
+
+fn hash(env: &Env, seed: u8) -> BytesN<32> {
+    BytesN::from_array(env, &[seed; 32])
+}
 
 fn setup() -> (Env, Address, Address, TipJarClient<'static>) {
     let env = Env::default();
@@ -52,20 +56,26 @@ fn record_tip_appends() {
     let from = Address::generate(&env);
     let to = Address::generate(&env);
 
-    client.record_tip(&from, &to, &1_000_000, &short(&env, "nice work"));
-    client.record_tip(&from, &to, &2_000_000, &short(&env, "keep going"));
+    let h1 = hash(&env, 0x11);
+    let h2 = hash(&env, 0x22);
+
+    client.record_tip(&from, &to, &1_000_000, &short(&env, "nice work"), &h1);
+    client.record_tip(&from, &to, &2_000_000, &short(&env, "keep going"), &h2);
 
     let tips = client.get_tips(&to);
     assert_eq!(tips.len(), 2);
 
-    let first = tips.get(0).unwrap();
-    assert_eq!(first.from, from);
-    assert_eq!(first.amount, 1_000_000);
-    assert_eq!(first.note, short(&env, "nice work"));
+    // Contract returns newest-first, so index 0 is the second tip recorded.
+    let newest = tips.get(0).unwrap();
+    assert_eq!(newest.amount, 2_000_000);
+    assert_eq!(newest.note, short(&env, "keep going"));
+    assert_eq!(newest.tx_hash, h2);
 
-    let second = tips.get(1).unwrap();
-    assert_eq!(second.amount, 2_000_000);
-    assert_eq!(second.note, short(&env, "keep going"));
+    let oldest = tips.get(1).unwrap();
+    assert_eq!(oldest.from, from);
+    assert_eq!(oldest.amount, 1_000_000);
+    assert_eq!(oldest.note, short(&env, "nice work"));
+    assert_eq!(oldest.tx_hash, h1);
 
     assert_eq!(client.tip_count(&to), 2);
 }
@@ -78,16 +88,17 @@ fn recipients_are_isolated() {
     let alice = Address::generate(&env);
     let bob = Address::generate(&env);
 
-    client.record_tip(&from, &alice, &100, &short(&env, "for alice"));
-    client.record_tip(&from, &bob, &200, &short(&env, "for bob"));
-    client.record_tip(&from, &alice, &300, &short(&env, "for alice again"));
+    client.record_tip(&from, &alice, &100, &short(&env, "for alice"), &hash(&env, 1));
+    client.record_tip(&from, &bob, &200, &short(&env, "for bob"), &hash(&env, 2));
+    client.record_tip(&from, &alice, &300, &short(&env, "for alice again"), &hash(&env, 3));
 
     assert_eq!(client.tip_count(&alice), 2);
     assert_eq!(client.tip_count(&bob), 1);
 
+    // Newest-first: "for alice again" (300) before "for alice" (100).
     let alice_tips = client.get_tips(&alice);
-    assert_eq!(alice_tips.get(0).unwrap().amount, 100);
-    assert_eq!(alice_tips.get(1).unwrap().amount, 300);
+    assert_eq!(alice_tips.get(0).unwrap().amount, 300);
+    assert_eq!(alice_tips.get(1).unwrap().amount, 100);
 
     let bob_tips = client.get_tips(&bob);
     assert_eq!(bob_tips.get(0).unwrap().amount, 200);
@@ -100,7 +111,7 @@ fn empty_note_allowed() {
     let from = Address::generate(&env);
     let to = Address::generate(&env);
 
-    client.record_tip(&from, &to, &100, &short(&env, ""));
+    client.record_tip(&from, &to, &100, &short(&env, ""), &hash(&env, 0));
 
     let tips = client.get_tips(&to);
     assert_eq!(tips.len(), 1);
@@ -118,7 +129,7 @@ fn long_note_rejected() {
     let long = "x".repeat(281);
     let long_string = String::from_str(&env, &long);
 
-    let result = client.try_record_tip(&from, &to, &100, &long_string);
+    let result = client.try_record_tip(&from, &to, &100, &long_string, &hash(&env, 0));
     assert_eq!(result, Err(Ok(Error::MessageTooLong)));
     assert_eq!(client.tip_count(&to), 0);
 }
@@ -130,7 +141,7 @@ fn negative_amount_rejected() {
     let from = Address::generate(&env);
     let to = Address::generate(&env);
 
-    let result = client.try_record_tip(&from, &to, &-1, &short(&env, "nope"));
+    let result = client.try_record_tip(&from, &to, &-1, &short(&env, "nope"), &hash(&env, 0));
     assert_eq!(result, Err(Ok(Error::NegativeAmount)));
     assert_eq!(client.tip_count(&to), 0);
 }
@@ -153,7 +164,7 @@ fn record_tip_requires_admin_auth() {
     let from = Address::generate(&env);
     let to = Address::generate(&env);
 
-    client.record_tip(&from, &to, &100, &short(&env, "auth test"));
+    client.record_tip(&from, &to, &100, &short(&env, "auth test"), &hash(&env, 0));
 
     // The mock_all_auths mode accepts any call; `env.auths()` returns
     // the authorizations that were asked for. The first element should be
@@ -179,6 +190,12 @@ fn uninitialized_contract_errors() {
     // record_tip fails
     let from = Address::generate(&env);
     let to = Address::generate(&env);
-    let result = client.try_record_tip(&from, &to, &100, &String::from_str(&env, ""));
+    let result = client.try_record_tip(
+        &from,
+        &to,
+        &100,
+        &String::from_str(&env, ""),
+        &hash(&env, 0),
+    );
     assert_eq!(result, Err(Ok(Error::NotInitialized)));
 }

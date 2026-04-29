@@ -9,7 +9,8 @@ import { getTipMessages } from "@/lib/tipjar";
  * Read all tip messages for a creator from the TipJar Soroban contract.
  *
  * This is a public read endpoint — anyone can see the tipping wall.
- * Serialized as JSON: { messages: [{ from, amount, note, timestamp }, ...] }
+ * Serialized as JSON:
+ *   { messages: [{ from, amount, note, timestamp, txHash }, ...] }
  * (amount and timestamp are converted from BigInt to string for JSON safety)
  */
 export async function GET(
@@ -32,6 +33,7 @@ export async function GET(
       amount: m.amount.toString(),
       note: m.note,
       timestamp: m.timestamp.toString(),
+      txHash: m.txHash,
     }));
     return NextResponse.json({ messages: serialized });
   } catch (err) {

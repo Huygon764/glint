@@ -71,7 +71,13 @@ export function useCreatorProfile(walletAddress: string | null) {
   const updateProfile = useCallback(
     async (
       slug: string,
-      updates: { displayName: string; bio?: string },
+      updates: {
+        displayName: string;
+        bio?: string;
+        twitter?: string;
+        github?: string;
+        website?: string;
+      },
     ): Promise<
       { ok: true; creator: Creator } | { ok: false; error: string }
     > => {
@@ -85,6 +91,9 @@ export function useCreatorProfile(walletAddress: string | null) {
             walletAddress,
             displayName: updates.displayName.trim(),
             bio: updates.bio?.trim() || undefined,
+            twitter: updates.twitter?.trim() || undefined,
+            github: updates.github?.trim() || undefined,
+            website: updates.website?.trim() || undefined,
           },
         );
         setState({ kind: "loaded", creator });

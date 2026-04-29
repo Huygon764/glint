@@ -60,6 +60,9 @@ export class JSONFileStore implements CreatorsStore {
       walletAddress: input.walletAddress,
       displayName: input.displayName,
       bio: input.bio,
+      twitter: input.twitter,
+      github: input.github,
+      website: input.website,
       createdAt: now,
       updatedAt: now,
     };
@@ -91,6 +94,9 @@ export class JSONFileStore implements CreatorsStore {
         displayName: updates.displayName,
       }),
       ...(updates.bio !== undefined && { bio: updates.bio }),
+      ...(updates.twitter !== undefined && { twitter: updates.twitter }),
+      ...(updates.github !== undefined && { github: updates.github }),
+      ...(updates.website !== undefined && { website: updates.website }),
       updatedAt: new Date().toISOString(),
     };
 

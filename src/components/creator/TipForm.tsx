@@ -15,6 +15,7 @@ import {
 import { Spinner } from "@/components/ui/Spinner";
 import { type FormStatus, isBusy } from "@/lib/form-status";
 import { createFreighterSigner } from "@/lib/freighter";
+import { stellarExpertTxUrl } from "@/lib/stellar";
 import { dispatchTipSent } from "@/lib/tip-events";
 import {
   MAX_TIP_AMOUNT,
@@ -30,6 +31,18 @@ type Props = {
   displayName: string;
 };
 
+type TipSuccess = {
+  amount: string;
+  txHash: string | null;
+  recordedOnChain: boolean | null;
+};
+
+type TipResponseBody = {
+  ok: boolean;
+  txHash?: string;
+  recordedOnChain?: boolean | null;
+};
+
 export function TipForm({ slug, displayName }: Props) {
   const address = useWalletStore((s) => s.address);
   const hasUsdcTrustline = useWalletStore((s) => s.hasUsdcTrustline);
@@ -38,7 +51,9 @@ export function TipForm({ slug, displayName }: Props) {
   const [selectedAmount, setSelectedAmount] = useState("1.00");
   const [customAmount, setCustomAmount] = useState("");
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<FormStatus<string>>({ kind: "idle" });
+  const [status, setStatus] = useState<FormStatus<TipSuccess>>({
+    kind: "idle",
+  });
 
   if (!address) {
     return (
@@ -106,8 +121,33 @@ export function TipForm({ slug, displayName }: Props) {
         return;
       }
 
-      setStatus({ kind: "success", data: text });
-      toast.success(`Sent $${finalAmount} USDC to ${displayName}`);
+      let parsedBody: TipResponseBody = { ok: true };
+      try {
+        parsedBody = JSON.parse(text);
+      } catch {
+        /* non-JSON body — fall through with defaults */
+      }
+
+      const txHash = parsedBody.txHash ?? null;
+      const recordedOnChain = parsedBody.recordedOnChain ?? null;
+
+      setStatus({
+        kind: "success",
+        data: { amount: finalAmount, txHash, recordedOnChain },
+      });
+      // Clear the inputs so "Send another" starts from a clean slate.
+      setMessage("");
+      setCustomAmount("");
+      setSelectedAmount("1.00");
+      toast.success(`Sent $${finalAmount} USDC to ${displayName}`, {
+        description: txHash ? "Tap to view on Stellar Expert." : undefined,
+        action: txHash
+          ? {
+              label: "View tx",
+              onClick: () => window.open(stellarExpertTxUrl(txHash), "_blank"),
+            }
+          : undefined,
+      });
       refreshBalances();
       dispatchTipSent(slug);
     } catch (err) {
@@ -142,6 +182,7 @@ export function TipForm({ slug, displayName }: Props) {
   }
 
   if (status.kind === "success") {
+    const { amount, txHash, recordedOnChain } = status.data;
     return (
       <Card padding="lg">
         <div className="text-center space-y-3">
@@ -152,11 +193,29 @@ export function TipForm({ slug, displayName }: Props) {
             Tip sent
           </h2>
           <p className="text-sm text-[var(--color-ink-soft)]">
-            ${finalAmount} USDC is on its way to {displayName}.
+            ${amount} USDC is on its way to {displayName}.
           </p>
-          <div className="font-mono text-xs text-[var(--color-ink-muted)] break-all pt-2 border-t border-[var(--color-border)]">
-            {status.data}
-          </div>
+          {txHash && (
+            <div className="pt-3 border-t border-[var(--color-border)] space-y-2">
+              <p className="text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
+                Payment transaction
+              </p>
+              <a
+                href={stellarExpertTxUrl(txHash)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block font-mono text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] break-all underline"
+              >
+                {txHash}
+              </a>
+            </div>
+          )}
+          {recordedOnChain === false && (
+            <p className="text-xs text-[var(--color-warn)]">
+              Payment settled, but the on-chain note write failed — it may take
+              a moment to appear on the wall.
+            </p>
+          )}
           <button
             type="button"
             onClick={() => setStatus({ kind: "idle" })}

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ShareButton } from "@/components/creator/ShareButton";
+import { SocialLinks } from "@/components/creator/SocialLinks";
 import { TipForm } from "@/components/creator/TipForm";
 import { TipWall } from "@/components/creator/TipWall";
 import { PageShell } from "@/components/layout/PageShell";
@@ -50,6 +51,7 @@ export default async function CreatorPage({
                 {creator.bio}
               </p>
             )}
+            <SocialLinks creator={creator} />
           </div>
           <ShareButton slug={creator.slug} />
         </div>

@@ -27,7 +27,9 @@
 //! long as there is activity. For completely inactive creators, data will
 //! eventually be archived and can be restored by paying rent.
 
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env, String, Vec};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, Address, BytesN, Env, String, Vec,
+};
 
 /// Minimum TTL threshold before extending (~7 days at 5 second ledger).
 const TTL_THRESHOLD_LEDGERS: u32 = 120_000;
@@ -50,6 +52,9 @@ pub struct TipMessage {
     pub note: String,
     /// Ledger timestamp when the tip was recorded.
     pub timestamp: u64,
+    /// Hash of the x402 USDC settlement transaction (32 bytes). Lets clients
+    /// deep-link each wall item to Stellar Expert for on-chain verification.
+    pub tx_hash: BytesN<32>,
 }
 
 #[contracttype]
@@ -106,12 +111,15 @@ impl TipJar {
     /// * `to` - Recipient's Stellar address.
     /// * `amount` - Tip amount in token smallest unit.
     /// * `note` - Optional message. Use empty string for no note.
+    /// * `tx_hash` - Hash of the x402 USDC settlement tx. Stored so clients
+    ///   can link each wall entry to the on-chain payment.
     pub fn record_tip(
         env: Env,
         from: Address,
         to: Address,
         amount: i128,
         note: String,
+        tx_hash: BytesN<32>,
     ) -> Result<(), Error> {
         // Only the configured admin (server) can record tips.
         let admin: Address = env
@@ -142,6 +150,7 @@ impl TipJar {
             amount,
             note,
             timestamp: env.ledger().timestamp(),
+            tx_hash,
         });
 
         // Persist and keep the entry alive.
@@ -156,14 +165,24 @@ impl TipJar {
         Ok(())
     }
 
-    /// Return all tip messages for a recipient (newest last).
+    /// Return all tip messages for a recipient, newest first.
     ///
-    /// Returns an empty Vec if the recipient has never received a tip.
+    /// Storage keeps messages in insertion order (append-only); the contract
+    /// reverses on read so every caller sees the same ordering without having
+    /// to re-sort client-side. Returns an empty Vec if the recipient has
+    /// never received a tip.
     pub fn get_tips(env: Env, to: Address) -> Vec<TipMessage> {
-        env.storage()
+        let stored: Vec<TipMessage> = env
+            .storage()
             .persistent()
             .get(&DataKey::Tips(to))
-            .unwrap_or_else(|| Vec::new(&env))
+            .unwrap_or_else(|| Vec::new(&env));
+
+        let mut reversed: Vec<TipMessage> = Vec::new(&env);
+        for i in (0..stored.len()).rev() {
+            reversed.push_back(stored.get(i).unwrap());
+        }
+        reversed
     }
 
     /// Return the number of tip messages recorded for a recipient.

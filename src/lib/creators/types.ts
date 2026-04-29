@@ -12,6 +12,12 @@ export type Creator = {
   walletAddress: string;
   displayName: string;
   bio?: string;
+  /** Twitter / X handle, stored without leading `@`. */
+  twitter?: string;
+  /** GitHub username. */
+  github?: string;
+  /** Personal/website URL (http or https). */
+  website?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -21,11 +27,17 @@ export type CreateCreatorInput = {
   walletAddress: string;
   displayName: string;
   bio?: string;
+  twitter?: string;
+  github?: string;
+  website?: string;
 };
 
 export type UpdateCreatorInput = {
   displayName?: string;
   bio?: string;
+  twitter?: string;
+  github?: string;
+  website?: string;
 };
 
 /**

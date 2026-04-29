@@ -87,6 +87,20 @@ input[type="number"] {
 }
 
 /*
+ * Tailwind v4 dropped the default `cursor: pointer` for `<button>` — restore
+ * it here so every clickable control feels right without each component
+ * having to remember. Disabled buttons revert to the not-allowed cursor.
+ */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/*
  * Indeterminate progress strip — shown at the top of the tip form card
  * while a tip is being signed / settled / recorded.
  */
@@ -101,5 +115,21 @@ input[type="number"] {
   100% {
     left: 100%;
     width: 30%;
+  }
+}
+
+/*
+ * Highlight a tip-wall item when it first appears. Fades a warm olive
+ * wash over the item's background, scaling down to the normal surface.
+ */
+@keyframes newTipGlow {
+  0% {
+    background-color: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    box-shadow: 0 0 0 1px
+      color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 1px transparent;
   }
 }

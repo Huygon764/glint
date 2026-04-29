@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -28,7 +28,17 @@ export function CreateProfileForm() {
   const [slug, setSlug] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [twitter, setTwitter] = useState("");
+  const [github, setGithub] = useState("");
+  const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<FormStatus<Creator>>({ kind: "idle" });
+
+  // Real host (e.g. `localhost:3000`, `glint-xyz.run.app`) so the handle
+  // preview and success link match wherever the app is actually deployed.
+  const [host, setHost] = useState<string | null>(null);
+  useEffect(() => {
+    setHost(window.location.host);
+  }, []);
 
   if (!address) {
     return (
@@ -52,6 +62,9 @@ export function CreateProfileForm() {
         walletAddress: address,
         displayName: displayName.trim(),
         bio: bio.trim() || undefined,
+        twitter: twitter.trim() || undefined,
+        github: github.trim() || undefined,
+        website: website.trim() || undefined,
       });
 
       setStatus({ kind: "success", data });
@@ -80,9 +93,9 @@ export function CreateProfileForm() {
         </p>
         <Link
           href={`/${status.data.slug}`}
-          className="font-mono text-lg text-[var(--color-ink)] underline"
+          className="font-mono text-lg text-[var(--color-ink)] underline break-all"
         >
-          glint.app/{status.data.slug}
+          {host ?? "…"}/{status.data.slug}
         </Link>
         <p className="text-xs text-[var(--color-ink-muted)] mt-4">
           Redirecting to your public page…
@@ -101,8 +114,11 @@ export function CreateProfileForm() {
             Handle <span className="text-[var(--color-error)]">*</span>
           </label>
           <div className="flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-sunken)] focus-within:border-[var(--color-accent)] transition-colors">
-            <span className="pl-3 pr-1 text-sm text-[var(--color-ink-muted)] font-mono">
-              glint.app/
+            <span
+              className="pl-3 pr-1 text-sm text-[var(--color-ink-muted)] font-mono max-w-[50%] truncate shrink-0"
+              title={host ?? undefined}
+            >
+              {host ?? "…"}/
             </span>
             <input
               id="slug"
@@ -156,6 +172,70 @@ export function CreateProfileForm() {
           <p className="text-xs text-[var(--color-ink-muted)] mt-1 text-right font-mono">
             {bio.length}/{BIO_MAX}
           </p>
+        </div>
+
+        <div className="pt-2 border-t border-[var(--color-border)] space-y-5">
+          <p className="text-xs uppercase tracking-wider text-[var(--color-ink-soft)]">
+            Links (optional)
+          </p>
+
+          <div>
+            <label htmlFor="twitter" className={LABEL_CLASSES}>
+              Twitter / X
+            </label>
+            <div className="flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-sunken)] focus-within:border-[var(--color-accent)] transition-colors">
+              <span className="pl-3 pr-1 text-sm text-[var(--color-ink-muted)] font-mono">
+                @
+              </span>
+              <input
+                id="twitter"
+                type="text"
+                value={twitter}
+                onChange={(e) => setTwitter(e.target.value.replace(/^@/, ""))}
+                placeholder="alicechen"
+                maxLength={16}
+                disabled={isSubmitting}
+                className="flex-1 h-11 px-1 bg-transparent text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted)] focus:outline-none font-mono text-sm disabled:opacity-60"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="github" className={LABEL_CLASSES}>
+              GitHub
+            </label>
+            <div className="flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-sunken)] focus-within:border-[var(--color-accent)] transition-colors">
+              <span className="pl-3 pr-1 text-sm text-[var(--color-ink-muted)] font-mono">
+                github.com/
+              </span>
+              <input
+                id="github"
+                type="text"
+                value={github}
+                onChange={(e) => setGithub(e.target.value.replace(/^@/, ""))}
+                placeholder="alicechen"
+                maxLength={40}
+                disabled={isSubmitting}
+                className="flex-1 h-11 px-1 bg-transparent text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted)] focus:outline-none font-mono text-sm disabled:opacity-60"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="website" className={LABEL_CLASSES}>
+              Website
+            </label>
+            <input
+              id="website"
+              type="url"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://alice.dev"
+              maxLength={200}
+              disabled={isSubmitting}
+              className={INPUT_CLASSES}
+            />
+          </div>
         </div>
 
         <div className="pt-2 border-t border-[var(--color-border)]">

@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { WalletBalances } from "@/components/wallet/WalletBalances";
 import { useWalletStore } from "@/stores/wallet";
 import { EditProfileForm } from "./EditProfileForm";
+import { StatsCards } from "./StatsCards";
 import { TippingLinkCard } from "./TippingLinkCard";
 import { useCreatorProfile } from "./useCreatorProfile";
 
@@ -69,6 +70,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <StatsCards slug={creator.slug} />
       <TippingLinkCard slug={creator.slug} />
       <EditProfileForm
         creator={creator}

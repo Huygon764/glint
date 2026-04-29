@@ -82,6 +82,8 @@ export type TipMessage = {
   amount: bigint;
   note: string;
   timestamp: bigint;
+  /** Hex-encoded hash of the x402 USDC settlement tx. */
+  txHash: string;
 };
 
 type SendResult = { ok: true; hash: string } | { ok: false; error: string };
@@ -91,6 +93,22 @@ type SendResult = { ok: true; hash: string } | { ok: false; error: string };
 //
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Convert a 64-char hex string (Stellar tx hash) to a 32-byte Buffer that
+ * nativeToScVal can encode as BytesN<32>. Accepts an optional `0x` prefix.
+ */
+function hexToBytes32(hex: string): Buffer {
+  const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
+  if (clean.length !== 64 || !/^[0-9a-fA-F]+$/.test(clean)) {
+    throw new Error(`tx hash must be 32 bytes hex (got ${clean.length} chars)`);
+  }
+  return Buffer.from(clean, "hex");
+}
+
+function bytes32ToHex(bytes: Uint8Array | Buffer): string {
+  return Buffer.from(bytes).toString("hex");
+}
 
 /**
  * Poll a Soroban RPC server until a transaction reaches a terminal state or
@@ -192,12 +210,15 @@ export async function recordTipMessage(
   to: string,
   amount: bigint,
   note: string,
+  txHash: string,
 ): Promise<SendResult> {
+  const hashBytes = hexToBytes32(txHash);
   const args = [
     new Address(from).toScVal(),
     new Address(to).toScVal(),
     nativeToScVal(amount, { type: "i128" }),
     nativeToScVal(note, { type: "string" }),
+    nativeToScVal(hashBytes, { type: "bytes" }),
   ];
 
   let lastError = "unknown";
@@ -261,6 +282,7 @@ export async function getTipMessages(to: string): Promise<TipMessage[]> {
     amount: bigint;
     note: string;
     timestamp: bigint;
+    tx_hash: Uint8Array;
   }>;
 
   return raw.map((r) => ({
@@ -268,5 +290,6 @@ export async function getTipMessages(to: string): Promise<TipMessage[]> {
     amount: r.amount,
     note: r.note,
     timestamp: r.timestamp,
+    txHash: bytes32ToHex(r.tx_hash),
   }));
 }

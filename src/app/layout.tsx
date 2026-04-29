@@ -43,7 +43,7 @@ export default function RootLayout({
         <AutoReconnect />
         {children}
         <Toaster
-          position="bottom-right"
+          position="top-right"
           closeButton
           toastOptions={{
             style: {

@@ -11,13 +11,19 @@ import {
   NotProfileOwnerError,
   validateBio,
   validateDisplayName,
+  validateGithub,
   validateSlug,
+  validateTwitter,
+  validateWebsite,
 } from "@/lib/creators";
 
 type UpdateRequestBody = {
   walletAddress?: string;
   displayName?: string;
   bio?: string;
+  twitter?: string;
+  github?: string;
+  website?: string;
 };
 
 /**
@@ -68,11 +74,26 @@ export async function PATCH(
   const bioResult = validateBio(body.bio);
   if (!bioResult.ok) return badRequest(bioResult.error);
 
+  const twitterResult = validateTwitter(body.twitter);
+  if (!twitterResult.ok) return badRequest(twitterResult.error);
+
+  const githubResult = validateGithub(body.github);
+  if (!githubResult.ok) return badRequest(githubResult.error);
+
+  const websiteResult = validateWebsite(body.website);
+  if (!websiteResult.ok) return badRequest(websiteResult.error);
+
   try {
     const updated = await getCreatorsStore().update(
       slugResult.slug,
       body.walletAddress,
-      { displayName: nameResult.value, bio: bioResult.value },
+      {
+        displayName: nameResult.value,
+        bio: bioResult.value,
+        twitter: twitterResult.value,
+        github: githubResult.value,
+        website: websiteResult.value,
+      },
     );
     return NextResponse.json(updated);
   } catch (err) {

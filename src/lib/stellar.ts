@@ -51,6 +51,14 @@ export const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ?? "https://horizon-testnet.stellar.org";
 
 /**
+ * Build a Stellar Expert deep link for a transaction hash.
+ * Testnet-only for the POC; switch `testnet` → `public` for mainnet.
+ */
+export function stellarExpertTxUrl(txHash: string): string {
+  return `https://stellar.expert/explorer/testnet/tx/${txHash}`;
+}
+
+/**
  * USDC classic asset issuer on Stellar testnet.
  * Source: Circle official docs
  * https://www.circle.com/en/multi-chain-usdc/stellar
