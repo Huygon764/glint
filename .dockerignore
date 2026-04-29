@@ -1,0 +1,35 @@
+# Dependencies + build outputs (rebuilt inside the image)
+node_modules
+.next
+out
+build
+
+# Local state — absolutely never ship into the image
+.data
+.env
+.env.*
+!.env.example
+secrets/
+*.keystore
+*.key
+wallet.json
+
+# Dev tooling / docs / refs not needed at runtime
+.git
+.gitignore
+.vscode
+.idea
+.vercel
+*.md
+!README.md
+
+# Design references and Rust contract source (not served by Next.js)
+stitch
+contracts
+
+# Test / debug artifacts
+coverage
+*.log
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
