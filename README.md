@@ -2,10 +2,6 @@
 
 Micropayment tipping dApp on Stellar. Creators receive USDC tips directly, with zero platform fees. Built on the x402 payment protocol — works for both humans (browser) and AI agents (HTTP).
 
-## Status
-
-Work in progress. Phase 0: project setup.
-
 ## Tech stack
 
 - [Next.js](https://nextjs.org/) 16 (App Router, TypeScript, Turbopack)
